@@ -344,6 +344,7 @@ tfidf_df_stem.to_csv("tfidf_stemmed.csv", index=False)
 print(tfidf_df_stem.head())
 print("✅ tfidf_stemmed.csv dosyası kaydedildi.")
 ````
+
 ````
 # df_sample üzerinde 'lemmatized_title' sütununu kullanıyoruz
 tfidf = TfidfVectorizer()
@@ -506,13 +507,14 @@ for p in parameters:
 for p in parameters:
     train_and_save_model(tokenized_corpus_stemmed,  p, "stemmed_model")
 ````
-![Ekran görüntüsü u2025-05-04 192413](https://github.com/user-attachments/assets/bbed076a-6ab3-4fe2-80ad-78b3fbb097a0)
+![Ekran görüntüsü 2025-05-04 194712](https://github.com/user-attachments/assets/16634ae3-d7d3-45bf-9eab-b64d65e11d33)
+
 
 ````
 # Modelleri yükledik
-model_1 = Word2Vec.load("lemmatized_model_cbow_window2_dim100.model")
-model_2 = Word2Vec.load("stemmed_model_skipgram_window4_dim100.model")
-model_3 = Word2Vec.load("lemmatized_model_skipgram_window2_dim300.model")
+model_1 = Word2Vec.load("lemmatized_model_cbow_w2_d100.model")
+model_2 = Word2Vec.load("stemmed_model_skipgram_w4_d100.model")
+model_3 = Word2Vec.load("lemmatized_model_skipgram_w4_d300.model")
 
 # Benzer kelimeleri yazdıran fonksiyon
 def print_similar_words(model, model_name, keyword='creamer'):
@@ -527,9 +529,10 @@ def print_similar_words(model, model_name, keyword='creamer'):
 # Her model için fonksiyonu çağırdık
 print_similar_words(model_1, "Lemmatized CBOW Window 2 Dim 100")
 print_similar_words(model_2, "Stemmed Skipgram Window 4 Dim 100")
-print_similar_words(model_3, "Lemmatized Skipgram Window 2 Dim 300")
+print_similar_words(model_3, "Lemmatized Skipgram Window 4 Dim 300")
 ````
-![Ekran görüntüsü 2025-05-04 192512](https://github.com/user-attachments/assets/c40e98c4-8646-4864-8bfa-28a1bf98c987)
+![Ekran görüntüsü 2025-05-04 194943](https://github.com/user-attachments/assets/ae07729e-7962-4550-88ae-570bf25edc87)
+
 
 # sizlerde buradaki adımları takip ederek kendi kodlarınızı çalıştırabilirsiniz, Başarılar
 
