@@ -62,7 +62,7 @@ Böylece her kelimenin açıklamadaki önemi dikkate alınarak daha anlamlı ve 
 
 **Dosya İçeriği:**
 
-- `ecommerce_nlp_model.ipynb`: Proje adımlarını içeren Jupyter Notebook dosyası
+- `ecommerce_nlp_model(5).ipynb`: Proje adımlarını içeren Jupyter Notebook dosyası
 - `README.md`: Bu açıklama dosyası
   
 # Nasıl Çalıştırılır?
