@@ -282,6 +282,10 @@ print(df_sample[['title', 'tokens_lemmatized', 'tokens_stemmed']].head(5))
 ````
 ![Ekran görüntüsü 2025-05-04 191141](https://github.com/user-attachments/assets/10de7a38-64ef-4be0-956e-f46a77789cdd)
 
+[lemmatizedd.zip](https://github.com/user-attachments/files/20028812/lemmatizedd.zip)
+
+[stemmedd.zip](https://github.com/user-attachments/files/20028811/stemmedd.zip)
+
 ````
 from sklearn.feature_extraction.text import TfidfVectorizer
 # Ön işlenmiş token listelerini tekrar metne çeviriyoruz
