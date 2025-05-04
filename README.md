@@ -7,7 +7,7 @@ TF-IDF ve Word2Vec ile ürün başlıkları üzerinden benzerlik analizi yaptık
 -E-ticaret platformlarında farklı satıcılar, aynı ürünü farklı açıklamalarla listeleyebilmektedir. Bu durum, kullanıcı deneyimini olumsuz etkileyebileceği gibi, -ürünlerin doğru şekilde gruplanamamasına da yol açar. Bu projenin amacı, benzer ürün açıklamalarını gruplayarak **ürün kümeleri** oluşturmak ve tekrar eden kayıtları anlamlı bir şekilde bir araya getirmektir.
 
 **Amaç:**
--Farklı satıcılara ait açıklamaları analiz ederek, aynı ürünü ifade eden açıklamaları **otomatik olarak gruplayan** bir sistem geliştirmektir.
+Farklı satıcılara ait açıklamaları analiz ederek, aynı ürünü ifade eden açıklamaları **otomatik olarak gruplayan** bir sistem geliştirmektir.
 
 **Kullanılan Yöntemler ve Adımlar:**
 
@@ -29,9 +29,9 @@ TF-IDF ve Word2Vec ile ürün başlıkları üzerinden benzerlik analizi yaptık
 - Marka, fiyat, boyut gibi ayırt edici ancak gruplaştırmaya engel olabilecek bilgiler açıklamalardan temizlenmiştir.
   
 **Vektörleştirme:**
--Her açıklama, içeriğindeki kelimelerin vektörlerinin TF-IDF ağırlıklı ortalaması alınarak temsil edilmiştir.
--Açıklamalardan kelime temsilleri oluşturmak için Word2Vec modeli eğitilmiştir.
--Böylece her kelimenin açıklamadaki önemi dikkate alınarak daha anlamlı ve ayrım gücü yüksek vektörler elde edilmiştir.
+Her açıklama, içeriğindeki kelimelerin vektörlerinin TF-IDF ağırlıklı ortalaması alınarak temsil edilmiştir.
+Açıklamalardan kelime temsilleri oluşturmak için Word2Vec modeli eğitilmiştir.
+Böylece her kelimenin açıklamadaki önemi dikkate alınarak daha anlamlı ve ayrım gücü yüksek vektörler elde edilmiştir.
 
 
 **Benzerlik Ölçümü:**
