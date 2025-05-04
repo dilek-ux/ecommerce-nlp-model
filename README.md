@@ -14,25 +14,37 @@ TF-IDF ve Word2Vec ile ürün başlıkları üzerinden benzerlik analizi yaptık
 -İçeriğinde: Ürün başlıkları (title), ürün ID’leri (posting_id), grup kimlikleri (label_group) gibi alanlar yer almaktadır.
 -Veri, farklı satıcıların aynı ürünü nasıl farklı şekilde adlandırdığını gözlemlemek ve bu açıklamaları gruplayarak eşleştirme yapmak için kullanılmıştır.
 -Açıklamalar, genellikle marka ve fiyat gibi ek unsurlar içerdiğinden, veri ön işleme gereklidir.
+**Kaynak:** Kaggle - Shopee Price Match Guarantee yarışması
+- **Dosya:** 'train.csv'
+-**Küçültülmüş dosya** 'train_sample_5000.csv'
+  
+**Zipf Yasası Analizi**
+- Kelimelerin frekans dağılımı incelenerek açıklama yapılarının doğallığı ve bilgi yoğunluğu değerlendirilmiştir.
+
 **Veri Temizleme**
 - Marka, fiyat, boyut gibi ayırt edici ancak gruplaştırmaya engel olabilecek bilgiler açıklamalardan temizlenmiştir.
+  
 **Vektörleştirme:**
 -Açıklamalardan kelime temsilleri oluşturmak için Word2Vec modeli eğitilmiştir.
-
 -Her açıklama, içeriğindeki kelimelerin vektörlerinin TF-IDF ağırlıklı ortalaması alınarak temsil edilmiştir.
-
 -Böylece her kelimenin açıklamadaki önemi dikkate alınarak daha anlamlı ve ayrım gücü yüksek vektörler elde edilmiştir.
+
 **Benzerlik Ölçümü:**
 - **Cosine Similarity** metriği kullanılarak açıklamalar arasındaki benzerlikler hesaplanmıştır.
+- Eşik değeri **0.85 üzeri** olan açıklamalar **aynı ürün grubu** olarak belirlenmiştir.
+
 **Kullanılan Teknolojiler:**
-- **Python**: Proje dili
-- **Gensim** (Word2Vec): Kelime vektörleri oluşturma
-- **Scikit-learn**: Cosine Similarity hesaplama
-- **Pandas / NumPy**: Veri işleme ve matematiksel hesaplamalar
-- **Jupyter Notebook**: Proje geliştirme ve sunum platformu
+-Python         | Projenin ana dili                    
+-Pandas / NumPy | Veri işleme ve matematiksel analiz   
+-Gensim         | Word2Vec modeli için                 
+-Scikit-learn   | TF-IDF ve benzerlik ölçümleri için   
+-Matplotlib     | Görselleştirme                       
+-Jupyter Notebook | Geliştirme ortamı
+
 **Dosya İçeriği:**
 - `ecommerce_nlp_model.ipynb`: Proje adımlarını içeren Jupyter Notebook dosyası
 - `README.md`: Bu açıklama dosyası
+  
 **Nasıl Çalıştırılır?**
 
   
