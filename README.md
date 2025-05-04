@@ -10,6 +10,7 @@ TF-IDF ve Word2Vec ile ürün başlıkları üzerinden benzerlik analizi yaptık
 -Farklı satıcılara ait açıklamaları analiz ederek, aynı ürünü ifade eden açıklamaları **otomatik olarak gruplayan** bir sistem geliştirmektir.
 
 **Kullanılan Yöntemler ve Adımlar:**
+
 **Veri Kaynağı:**
 -Bu projede kullanılan ürün açıklamaları verisi, Kaggle platformundaki Shopee - Price Match Guarantee yarışmasından alınmıştır.
 -Kullanılan dosya: train.csv
@@ -17,7 +18,7 @@ TF-IDF ve Word2Vec ile ürün başlıkları üzerinden benzerlik analizi yaptık
 -Veri, farklı satıcıların aynı ürünü nasıl farklı şekilde adlandırdığını gözlemlemek ve bu açıklamaları gruplayarak eşleştirme yapmak için kullanılmıştır.
 -Açıklamalar, genellikle marka ve fiyat gibi ek unsurlar içerdiğinden, veri ön işleme gereklidir.
 
-**Kaynak:** Kaggle - Shopee Price Match Guarantee yarışması
+**Kaynak:** Kaggle - Shopee Price Match Guarantee yarışması/ https://www.kaggle.com/competitions/shopee-product-matching/data?select=train.csv
 - **Dosya:** 'train.csv'
 -**Küçültülmüş dosya** 'train_sample_5000.csv'
   
