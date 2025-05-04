@@ -314,6 +314,7 @@ tfidf_df.to_csv("tfidf_lemmatized.csv", index=False)
 print("✅ tfidf_lemmatized.csv dosyası kaydedildi.")
 ````
 ![Ekran görüntüsü 2025-05-04 191514](https://github.com/user-attachments/assets/41fc554d-515e-4cb7-8db6-8505207028b0)
+[lemmatized.zip](https://github.com/user-attachments/files/20028783/lemmatized.zip)
 
 ````
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -344,6 +345,8 @@ tfidf_df_stem.to_csv("tfidf_stemmed.csv", index=False)
 print(tfidf_df_stem.head())
 print("✅ tfidf_stemmed.csv dosyası kaydedildi.")
 ````
+[stemmed.zip](https://github.com/user-attachments/files/20028785/stemmed.zip)
+
 
 ````
 # df_sample üzerinde 'lemmatized_title' sütununu kullanıyoruz
@@ -532,6 +535,7 @@ print_similar_words(model_2, "Stemmed Skipgram Window 4 Dim 100")
 print_similar_words(model_3, "Lemmatized Skipgram Window 4 Dim 300")
 ````
 ![Ekran görüntüsü 2025-05-04 194943](https://github.com/user-attachments/assets/ae07729e-7962-4550-88ae-570bf25edc87)
+
 
 # sizlerde buradaki adımları takip ederek kendi kodlarınızı çalıştırabilirsiniz, Başarılar
 
