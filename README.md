@@ -51,6 +51,42 @@ Böylece her kelimenin açıklamadaki önemi dikkate alınarak daha anlamlı ve 
 - `README.md`: Bu açıklama dosyası
   
 **Nasıl Çalıştırılır?**
+**Öncelikle gerekli kütüphaneleri yüklüyoruz**
+import pandas as pd
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer, PorterStemmer
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
+import matplotlib.pyplot as plt
+from collections import Counter
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from gensim.models import Word2Vec
+import os
+
+
+**Ardından veri setini çekiyoruz**
+# Orijinal veri
+df = pd.read_csv("train.csv")
+
+# 5 000 satırlık rastgele alt küme
+df_sample = df.sample(n=5000, random_state=42)
+
+# Yeni dosyayı kaydet
+df_sample.to_csv("train_sample_5000.csv", index=False)
+
+print("Oluşturulan alt küme satır sayısı:", df_sample.shape[0])
+
+# Yeni oluşturduğumuz alt küme dosyasını yükle
+df_sample = pd.read_csv("train_sample_5000.csv")
+
+
+# Veriyi incele
+print(df_sample.head())
 
   
 
