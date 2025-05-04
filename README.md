@@ -51,7 +51,8 @@ Böylece her kelimenin açıklamadaki önemi dikkate alınarak daha anlamlı ve 
 - `README.md`: Bu açıklama dosyası
   
 **Nasıl Çalıştırılır?**
-**Öncelikle gerekli kütüphaneleri yüklüyoruz**
+
+# Öncelikle gerekli kütüphaneleri yüklüyoruz
 import pandas as pd
 import nltk
 from nltk.tokenize import word_tokenize
@@ -69,23 +70,26 @@ from gensim.models import Word2Vec
 import os
 
 
-**Ardından veri setini çekiyoruz**
-# Orijinal veri
+# Ardından veri setini çekiyoruz
+
+**Kaynak:** Kaggle - Shopee Price Match Guarantee yarışması/ https://www.kaggle.com/competitions/shopee-product-matching/data?select=train.csv , buradan train.csv verisini çekiyoruz.
+
+**Orijinal veri**
 df = pd.read_csv("train.csv")
 
-# 5 000 satırlık rastgele alt küme
+**5 000 satırlık rastgele alt küme**
 df_sample = df.sample(n=5000, random_state=42)
 
-# Yeni dosyayı kaydet
+**Yeni dosyayı kaydet**
 df_sample.to_csv("train_sample_5000.csv", index=False)
 
 print("Oluşturulan alt küme satır sayısı:", df_sample.shape[0])
 
-# Yeni oluşturduğumuz alt küme dosyasını yükle
+**Yeni oluşturduğumuz alt küme dosyasını yükle**
 df_sample = pd.read_csv("train_sample_5000.csv")
 
 
-# Veriyi incele
+**Veriyi incele**
 print(df_sample.head())
 
   
