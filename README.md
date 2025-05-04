@@ -29,9 +29,10 @@ TF-IDF ve Word2Vec ile ürün başlıkları üzerinden benzerlik analizi yaptık
 - Marka, fiyat, boyut gibi ayırt edici ancak gruplaştırmaya engel olabilecek bilgiler açıklamalardan temizlenmiştir.
   
 **Vektörleştirme:**
--Açıklamalardan kelime temsilleri oluşturmak için Word2Vec modeli eğitilmiştir.
 -Her açıklama, içeriğindeki kelimelerin vektörlerinin TF-IDF ağırlıklı ortalaması alınarak temsil edilmiştir.
+-Açıklamalardan kelime temsilleri oluşturmak için Word2Vec modeli eğitilmiştir.
 -Böylece her kelimenin açıklamadaki önemi dikkate alınarak daha anlamlı ve ayrım gücü yüksek vektörler elde edilmiştir.
+
 
 **Benzerlik Ölçümü:**
 - **Cosine Similarity** metriği kullanılarak açıklamalar arasındaki benzerlikler hesaplanmıştır.
