@@ -5,8 +5,10 @@ TF-IDF ve Word2Vec ile ürün başlıkları üzerinden benzerlik analizi yaptık
 
 **Problem nedir:**
 -E-ticaret platformlarında farklı satıcılar, aynı ürünü farklı açıklamalarla listeleyebilmektedir. Bu durum, kullanıcı deneyimini olumsuz etkileyebileceği gibi, -ürünlerin doğru şekilde gruplanamamasına da yol açar. Bu projenin amacı, benzer ürün açıklamalarını gruplayarak **ürün kümeleri** oluşturmak ve tekrar eden kayıtları anlamlı bir şekilde bir araya getirmektir.
+
 **Amaç:**
 -Farklı satıcılara ait açıklamaları analiz ederek, aynı ürünü ifade eden açıklamaları **otomatik olarak gruplayan** bir sistem geliştirmektir.
+
 **Kullanılan Yöntemler ve Adımlar:**
 **Veri Kaynağı:**
 -Bu projede kullanılan ürün açıklamaları verisi, Kaggle platformundaki Shopee - Price Match Guarantee yarışmasından alınmıştır.
@@ -14,6 +16,7 @@ TF-IDF ve Word2Vec ile ürün başlıkları üzerinden benzerlik analizi yaptık
 -İçeriğinde: Ürün başlıkları (title), ürün ID’leri (posting_id), grup kimlikleri (label_group) gibi alanlar yer almaktadır.
 -Veri, farklı satıcıların aynı ürünü nasıl farklı şekilde adlandırdığını gözlemlemek ve bu açıklamaları gruplayarak eşleştirme yapmak için kullanılmıştır.
 -Açıklamalar, genellikle marka ve fiyat gibi ek unsurlar içerdiğinden, veri ön işleme gereklidir.
+
 **Kaynak:** Kaggle - Shopee Price Match Guarantee yarışması
 - **Dosya:** 'train.csv'
 -**Küçültülmüş dosya** 'train_sample_5000.csv'
