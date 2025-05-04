@@ -533,7 +533,6 @@ print_similar_words(model_3, "Lemmatized Skipgram Window 4 Dim 300")
 ````
 ![Ekran görüntüsü 2025-05-04 194943](https://github.com/user-attachments/assets/ae07729e-7962-4550-88ae-570bf25edc87)
 
-
 # sizlerde buradaki adımları takip ederek kendi kodlarınızı çalıştırabilirsiniz, Başarılar
 
 
