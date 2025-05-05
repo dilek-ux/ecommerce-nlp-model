@@ -52,17 +52,17 @@ Böylece her kelimenin açıklamadaki önemi dikkate alınarak daha anlamlı ve 
 - **Cosine Similarity** metriği kullanılarak açıklamalar arasındaki benzerlikler hesaplanmıştır.
 - Eşik değeri **0.85 üzeri** olan açıklamalar **aynı ürün grubu** olarak belirlenmiştir.
 
-**Kullanılan Teknolojiler:**
--Python         | Projenin ana dili                    
--Pandas / NumPy | Veri işleme ve matematiksel analiz   
--Gensim         | Word2Vec modeli için                 
--Scikit-learn   | TF-IDF ve benzerlik ölçümleri için   
--Matplotlib     | Görselleştirme                       
--Jupyter Notebook | Geliştirme ortamı
+**Kullanılan Kütüphaneler:**
+-Python          :Projenin ana dili                    
+-Pandas / NumPy :Veri işleme ve matematiksel analiz   
+-Gensim          : Word2Vec modeli için                 
+-Scikit-learn   :TF-IDF ve benzerlik ölçümleri için   
+-Matplotlib     :Görselleştirme                       
+-Jupyter Notebook : Geliştirme ortamı
 
 **Dosya İçeriği:**
 
-- `ecommerce_nlp_model(5).ipynb`: Proje adımlarını içeren Jupyter Notebook dosyası
+- `ecommerce_nlp_model(6).ipynb`: Proje adımlarını içeren Jupyter Notebook dosyası
 - `README.md`: Bu açıklama dosyası
   
 # Nasıl Çalıştırılır?
