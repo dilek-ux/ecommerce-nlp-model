@@ -67,7 +67,7 @@ Böylece her kelimenin açıklamadaki önemi dikkate alınarak daha anlamlı ve 
   
 # Nasıl Çalıştırılır?
 
-**jupyter notebook üzerinden işlem yapılmıştır**.
+**jupyter notebook üzerinden çalışma yapılmıştır**.
 
 **Öncelikle gerekli kütüphaneleri yüklüyoruz**
 
