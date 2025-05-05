@@ -1,15 +1,31 @@
-# Jupyter Notebook checkpoints
+# Python cache dosyaları
+__pycache__/
+*.py[cod]
+*.so
+
+# Jupyter checkpoint dosyaları
 .ipynb_checkpoints/
 
-# Python cache
-__pycache__/
-*.pyc
+# Sanal ortam klasörleri
+env/
+venv/
+.venv/
 
-# Model dosyaları
-*.model
-
-# Veri dosyaları
+# Çıktı dosyaları
 *.csv
+*.tsv
+*.log
+*.out
 
-# Ortam dosyaları
-.env
+# IDE ayar dosyaları
+.vscode/
+.idea/
+
+# İşletim sistemi dosyaları
+.DS_Store
+Thumbs.db
+
+# Kaggle config veya veri dosyaları
+kaggle.json
+*.zip
+
