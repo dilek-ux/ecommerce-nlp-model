@@ -12,23 +12,33 @@ Farklı satıcılara ait açıklamaları analiz ederek, aynı ürünü ifade ede
 
 **Kullanılan Yöntemler ve Adımlar:**
 
-**Veri Kaynağı:**
+## Veri Kaynağı
 
-Bu projede kullanılan ürün açıklamaları verisi, Kaggle platformundaki Shopee - Price Match Guarantee yarışmasından alınmıştır.
+Bu projede kullanılan ürün verileri, PriceRunner adlı ürün karşılaştırma platformundan elde edilen **PriceRunner Product Matching (Product Classification and Clustering)** veri setinden alınmıştır.
 
-Kullanılan dosya: train.csv
+**Kullanılan dosya:** `pricerunner_aggregate.csv` (PriceRunner Birleştirilmiş Ürün Verileri)
 
-İçeriğinde: Ürün başlıkları (title), ürün ID’leri (posting_id), grup kimlikleri (label_group) gibi alanlar yer almaktadır.
+**Veri setinin içeriği:**
 
-Veri, farklı satıcıların aynı ürünü nasıl farklı şekilde adlandırdığını gözlemlemek ve bu açıklamaları gruplayarak eşleştirme yapmak için kullanılmıştır.
+- `Product ID`: Ürün kimliği.
+- `Product Title`: Satıcılar tarafından oluşturulan ürün başlıkları.
+- `Vendor ID`: Ürünü listeleyen satıcının kimliği.
+- `Cluster ID`: Aynı ürüne ait kayıtları gruplandıran kimlik.
+- `Cluster Label`: Ürünün platformdaki standart adı.
+- `Category ID`: Ürün kategorisinin kimliği.
+- `Category Label`: Ürün kategorisinin adı.
 
-Açıklamalar, genellikle marka ve fiyat gibi ek unsurlar içerdiğinden, veri ön işleme gereklidir.
+Veri seti, 306 farklı satıcı tarafından sağlanan 35.311 ürün kaydından ve 10 farklı ürün kategorisinden oluşmaktadır. Ürün başlıkları İngilizcedir.
 
-**Kaynak:** Kaggle - Shopee Price Match Guarantee yarışması/ https://www.kaggle.com/competitions/shopee-product-matching/data?select=train.csv
-- **Dosya:** 'train.csv' [train (2).csv](https://github.com/user-attachments/files/20028541/train.2.csv)
+Bu veri seti, farklı satıcıların aynı ürünü farklı başlıklarla nasıl tanımladığını incelemek, metin benzerliği hesaplamak ve aynı ürüne ait kayıtları eşleştirmek amacıyla kullanılacaktır.
 
--**Küçültülmüş dosya** 'train_sample_5000.csv' [train_sample_5000 (2).csv](https://github.com/user-attachments/files/20028542/train_sample_5000.2.csv)
+Proje kapsamında ürün başlıkları üzerinde metin ön işleme işlemleri gerçekleştirilecek; Tokenization, Stopword Removal, Lemmatization ve Stemming yöntemleri uygulanacaktır. Ardından TF-IDF, Word2Vec ve Cosine Similarity yöntemleriyle ürün başlıkları arasındaki benzerlikler incelenecektir.
 
+**Kaynak:** PriceRunner Product Matching Dataset, Hugging Face / UCI Machine Learning Repository.
+
+**Veri seti bağlantısı:** https://huggingface.co/datasets/lakritidis/product-matching
+
+**CSV dosyası:** `pricerunner_aggregate.csv`
   
 **Zipf Yasası Analizi**
 
