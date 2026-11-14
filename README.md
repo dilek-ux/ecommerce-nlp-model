@@ -1611,7 +1611,133 @@ Jaccard matrisi CSV dosyasına kaydedildi.
 ````
 
 
+````
+**Sonuçların Değerlendirilmesi**
 
+1. Veri setinin incelenmesi ve metin ön işleme sonuçları
+
+
+Bu çalışmada, e-ticaret platformlarında aynı ürüne ait farklı satıcı başlıklarının tespit edilebilmesi amacıyla PriceRunner veri seti kullanılmıştır. Veri seti 35.311 ürün kaydı ve 7 sütundan oluşmaktadır. Ürün başlıkları, modelin temel girdisi olarak değerlendirilmiş; ürünlere ait Cluster ID ve Cluster Label bilgileri ise veri setinin orijinal yapısında korunmuştur.
+
+İlk aşamada ürün başlıkları incelenmiş ve metinler üzerinde küçük harfe dönüştürme, HTML etiketlerini temizleme, noktalama işaretlerini düzenleme ve gereksiz boşlukları kaldırma işlemleri gerçekleştirilmiştir.
+
+Ardından metinler üzerinde Tokenization, Lemmatization ve Stemming işlemleri uygulanmıştır. Bu işlemler sonucunda ürün başlıklarının farklı metinsel gösterimleri elde edilmiştir.
+
+Örneğin, apple iphone 8 plus 64gb silver başlığı Lemmatization sonrasında aynı biçimini korurken, Stemming işleminden sonra appl iphon 8 plu 64gb silver biçimine dönüşmüştür.
+
+Bu aşamada Lemmatization işleminin kelimelerin temel biçimini koruduğu, Stemming işleminin ise kelimeleri köklerine indirgerken daha fazla biçimsel değişiklik oluşturduğu gözlemlenmiştir.
+
+2. Zipf Yasası analizi
+
+
+Ham ürün başlıkları, Lemmatized ve Stemmed metinler üzerinde ayrı ayrı Zipf Yasası analizleri gerçekleştirilmiştir.
+
+Bu analiz ile veri setinde kelimelerin kullanım sıklıkları incelenmiş ve kelime sıralaması ile frekans arasındaki ilişki log-log grafikler üzerinden gösterilmiştir.
+
+Üç farklı metin gösterimi üzerinden analiz yapılması, metin ön işleme işlemlerinin kelime dağılımına nasıl yansıdığını incelemeyi sağlamıştır.
+
+3. TF-IDF sonuçlarının değerlendirilmesi
+
+
+TF-IDF yöntemi hem Lemmatized hem de Stemmed metinler üzerinde uygulanmıştır.
+
+Lemmatized TF-IDF matrisi 35.311 × 19.157, Stemmed TF-IDF matrisi ise 35.311 × 19.157 boyutunda oluşturulmuştur. Her iki yöntemde de 19.157 farklı özellik elde edilmiştir.
+
+TF-IDF yöntemiyle ürün başlıklarında yer alan kelimelerin, ilgili ürün açısından ayırt edicilik değerleri hesaplanmıştır.
+
+İlk ürün olarak apple iphone 8 plus 64gb silver başlığı seçilmiş ve diğer ürünlerle cosine similarity değerleri hesaplanmıştır.
+
+Lemmatized TF-IDF sonuçları
+Benzer ürün	Cosine similarity
+apple iphone 8 plus 64 gb silver	1.0000
+apple iphone 8 plus 64gb silver unlocked	0.9007
+apple iphone 8 plus	0.8466
+apple iphone 8 plus 5.5 single sim 4g 64gb silver	0.8219
+apple iphone 8 plus 64gb gold smartphone	0.8074
+
+Stemmed TF-IDF sonuçları
+Benzer ürün	Cosine similarity
+apple iphone 8 plus 64 gb silver	1.0000
+apple iphone 8 plus 64gb silver unlocked	0.9277
+apple iphone 8 plus	0.8466
+apple iphone 8 plus 5.5 single sim 4g 64gb silver	0.8219
+apple iphone 8 plus silver 5.5 64gb 4g unlocked sim free	0.8171
+
+Sonuçlar incelendiğinde her iki yöntemin de giriş ürününe oldukça yakın ürünleri üst sıralara taşıdığı görülmüştür. Stemmed TF-IDF yönteminde bazı ürünlerin benzerlik skorlarının daha yüksek olduğu, Lemmatized TF-IDF yönteminde ise farklı ürün başlıklarının sıralamaya dahil edildiği görülmüştür.
+
+Bu sonuçlar, metin ön işleme yönteminin TF-IDF tabanlı benzerlik hesaplamalarını etkilediğini göstermektedir.
+
+4. Word2Vec modellerinin değerlendirilmesi
+
+
+Çalışmanın sonraki aşamasında kelimeler arasındaki bağlamsal ilişkileri incelemek amacıyla Word2Vec yöntemi kullanılmıştır.
+
+CBOW ve Skip-gram olmak üzere iki farklı eğitim yaklaşımı değerlendirilmiştir. Ayrıca Window değerleri 2 ve 4, vektör boyutları ise 100 ve 300 olarak belirlenmiştir.
+
+Lemmatized ve Stemmed metinler üzerinde ayrı ayrı eğitim gerçekleştirilerek toplam 16 Word2Vec modeli oluşturulmuştur.
+
+Kelime benzerliği incelemesinde iphone ve iphon kelimeleri üzerinden örnek sorgular gerçekleştirilmiştir.
+
+Örneğin Lemmatized Skip-gram Window 4, 300 boyutlu modelde iphone kelimesine en yakın kelimeler arasında apple, 6s ve mnqq2b yer almıştır.
+
+Stemmed Skip-gram Window 4, 100 boyutlu modelde ise iphon kelimesine en yakın kelimeler appl, mnqq2b ve xs olarak belirlenmiştir.
+
+Bu sonuçlar, Word2Vec modellerinin ürün adları, marka isimleri ve model kodları arasında bağlamsal ilişkiler öğrenebildiğini göstermektedir. Bununla birlikte, bazı modellerde elde edilen benzer kelimelerin doğrudan anlamsal olarak ilişkili olmadığı da görülmüştür.
+5. Word2Vec ile ürün benzerliği sonuçları
+
+
+Word2Vec modellerinin ürün başlıklarını karşılaştırma performansını incelemek amacıyla her ürünün kelime vektörlerinin ortalaması alınarak cümle vektörleri oluşturulmuştur.
+
+İlk ürün başlığı olan apple iphone 8 plus 64gb silver sorgu olarak belirlenmiş ve sekiz farklı model üzerinden en benzer beş ürün araştırılmıştır.
+
+Lemmatized modellerin sonuçlarında, giriş ürünüyle aynı ürün ailesine ait farklı satıcı başlıklarının üst sıralarda yer aldığı görülmüştür.
+
+Örneğin Lemmatized CBOW Window 2 modelinde ilk beş sonuç arasında:
+- apple iphone 8 plus 64gb silver
+- apple iphone 8 plus 256gb silver
+- apple iphone 8 plus 64gb space grey
+gibi ürünler bulunmaktadır.
+
+Stemmed modellerde ise farklı ürün indeksleri üst sıralara çıkmıştır. Bu durum, Stemming işleminin kelime temsillerini değiştirmesinin modelin benzerlik sonuçlarına da yansıdığını göstermektedir.
+
+Dolayısıyla Word2Vec sonuçlarında yalnızca model mimarisinin değil, metin ön işleme yönteminin de önemli bir etkisi olduğu gözlemlenmiştir.
+
+6. Jaccard benzerliği ile sıralama tutarlılığı değerlendirmesi
+
+
+Sekiz farklı Word2Vec modelinin ilk beş ürün sonucu karşılaştırılarak Jaccard benzerlik matrisi oluşturulmuştur.
+
+Jaccard benzerliği, iki modelin ilk beş sonuç listesinde bulunan ortak ürünlerin, toplam farklı ürünlere oranını hesaplamak amacıyla kullanılmıştır.
+
+Sonuçlarda özellikle Lemmatized modeller arasında farklı düzeylerde benzerlikler elde edilmiştir.
+
+Örneğin:
+- Lemmatized CBOW Window 2 ile Lemmatized CBOW Window 4 modelleri arasında 0.43 Jaccard benzerliği elde edilmiştir.
+- Lemmatized Skip-gram Window 2 ile Lemmatized Skip-gram Window 4 modelleri arasında 0.67 benzerlik görülmüştür.
+- Stemmed Skip-gram Window 2 ve Window 4 modelleri arasında ise 0.67 benzerlik elde edilmiştir.
+- Lemmatized ve Stemmed CBOW modelleri arasında bazı karşılaştırmalarda 0.00 benzerlik görülmüştür.
+Bu sonuçlar, farklı Word2Vec modellerinin aynı ürün sorgusu için farklı sonuç kümeleri oluşturabildiğini göstermektedir. Özellikle aynı model mimarisinde Window değerinin değiştirilmesi, sonuçların bir kısmının korunmasına rağmen sıralamaya giren ürünleri de değiştirebilmektedir.
+
+Jaccard değerlerinin yüksek olması, modellerin aynı ürünleri sonuç listelerine dahil ettiğini; düşük olması ise sonuç kümelerinin birbirinden farklılaştığını göstermektedir.
+
+Burada önemli bir nokta, Jaccard yönteminin sıralamadaki pozisyonları değil, yalnızca ortak ürünleri değerlendirmesidir.
+
+7. Genel sonuç ve değerlendirme
+
+
+Bu çalışma kapsamında e-ticaret platformlarında aynı ürüne ait farklı ürün başlıklarının metin madenciliği ve doğal dil işleme yöntemleriyle karşılaştırılması amaçlanmıştır.
+
+Çalışmada TF-IDF ve Word2Vec yöntemleri kullanılarak ürün başlıklarının farklı biçimlerde temsil edilmesi sağlanmış, cosine similarity yöntemiyle ürünler arasındaki benzerlikler hesaplanmıştır.
+
+TF-IDF yöntemi, ürün başlıklarında bulunan kelimelerin ayırt edicilik değerlerini dikkate alarak benzer ürünleri belirlemiştir. Word2Vec yöntemi ise kelimeler arasındaki bağlamsal ilişkileri öğrenerek ürün başlıklarını vektörler aracılığıyla temsil etmiştir.
+
+Lemmatization ve Stemming işlemlerinin farklı sonuçlar oluşturduğu, aynı şekilde CBOW ve Skip-gram mimarileri ile Window parametresinin de model çıktıları üzerinde etkili olduğu gözlemlenmiştir.
+
+Jaccard benzerliği kullanılarak modellerin ilk beş sonuç kümesi karşılaştırılmış ve modeller arasındaki tutarlılık farklılıkları incelenmiştir.
+
+Genel olarak çalışma, farklı metin ön işleme ve kelime temsil yöntemlerinin ürün benzerliği sonuçlarını nasıl etkilediğini ortaya koymuştur. Elde edilen bulgular, ürün başlıklarının otomatik olarak karşılaştırılması ve benzer ürünlerin tespit edilmesi süreçlerinde doğal dil işleme yöntemlerinin kullanılabileceğini göstermektedir.
+
+````
 
 
 
