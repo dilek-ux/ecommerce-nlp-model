@@ -1,4 +1,4 @@
-# ecommerce-nlp-model
+    # ecommerce-nlp-model
 TF-IDF ve Word2Vec ile ürün başlıkları üzerinden benzerlik analizi yaptık
 
 **E-Ticaret Projesi: Ürün Açıklama Eşleştirme**
@@ -82,328 +82,501 @@ Böylece her kelimenin açıklamadaki önemi dikkate alınarak daha anlamlı ve 
 **Öncelikle gerekli kütüphaneleri yüklüyoruz**
 
 ```` 
+# Veri analizi
+import os
+import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+from collections import Counter
+
+# Doğal Dil İşleme (NLP)
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer, PorterStemmer
-nltk.download('punkt')
-nltk.download('stopwords')
-nltk.download('wordnet')
-import matplotlib.pyplot as plt
-from collections import Counter
-import numpy as np
+
+# Metin benzerliği ve özellik çıkarımı
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+
+# Word2Vec
 from gensim.models import Word2Vec
-import os
+
+# Gerekli NLTK kaynakları
+nltk.download('punkt')
+nltk.download('punkt_tab')
+nltk.download('stopwords')
+nltk.download('wordnet')
+nltk.download('averaged_perceptron_tagger_eng')
 ````
 
 **Ardından veri setini çekiyoruz**
 
-**Kaynak:** Kaggle - Shopee Price Match Guarantee yarışması/ https://www.kaggle.com/competitions/shopee-product-matching/data?select=train.csv , buradan train.csv verisini çekiyoruz.
+**Kaynak:** PriceRunner Product Matching Dataset, Hugging Face / UCI Machine Learning Repository.
+, buradan `pricerunner_aggregate.csv` verisini çekiyoruz.
 
 ````
-# Orijinal veri
-df = pd.read_csv("train.csv")
+# PriceRunner veri setini yükle
+df = pd.read_csv("pricerunner_aggregate.csv")
 
-# 5 000 satırlık rastgele alt küme
-df_sample = df.sample(n=5000, random_state=42)
+# Veri setinin boyutunu incele
+print("Veri setinin satır ve sütun sayısı:", df.shape)
 
-# Yeni dosyayı kaydet
-df_sample.to_csv("train_sample_5000.csv", index=False)
+# İlk 5 kaydı görüntüle
+print("\nİlk 5 kayıt:")
+print(df.head())
 
-print("Oluşturulan alt küme satır sayısı:", df_sample.shape[0])
-
-# Yeni oluşturduğumuz alt küme dosyasını yükle
-df_sample = pd.read_csv("train_sample_5000.csv")
-
-
-# Veriyi incele
-print(df_sample.head())
+# Sütun bilgilerini incele
+print("\nSütun bilgileri:")
+print(df.info())
 ````
 
 
+<img width="1478" height="747" alt="Ekran görüntüsü 2026-11-14 175957" src="https://github.com/user-attachments/assets/4b63a12e-27c5-4800-9d04-95224a7795f3" />
 
-![Ekran görüntüsü 2025-05-04 183050](https://github.com/user-attachments/assets/d81362cc-8b18-46a4-9f61-72c46b475e09)
 
-**ardından** 
-
-````
-df_sample = pd.read_csv("train_sample_5000.csv")
-
-# 'title sutunuyla çalışıyoruz
-sentences = df_sample['title'].astype(str).tolist()
-````
-kodunu çalıştırıyoruz.
+**ardından kodunu çalıştırıyoruz.** 
 
 **Şimdi Zipf Yasası Analizine geçiyoruz**
 ````
-import matplotlib.pyplot as plt
+# Gerekli kütüphaneler
 from collections import Counter
 import numpy as np
+import matplotlib.pyplot as plt
 
+# Ürün başlıklarını tek bir metin haline getir
+all_text = ' '.join(df['Product Title'].astype(str))
 
-# Veriyi yükle (train.csv dosyanız aynı klasörde olmalı)
-df_sample = pd.read_csv('train_sample_5000.csv')
-
-# Ham başlıkları tek bir metin haline getir
-all_text = ' '.join(df['title'].astype(str))
-
-# Kelimelere ayır (tokenize) ve küçük harfe çevir, sadece harf olanları al
-tokens = [word.lower() for word in word_tokenize(all_text) if word.isalpha()]
+# Kelimelere ayır ve küçük harfe çevir
+tokens = [
+    word.lower()
+    for word in word_tokenize(all_text)
+    if word.isalpha()
+]
 
 # Kelime frekanslarını hesapla
 word_counts = Counter(tokens)
 
-# Sıklıklara göre sırala
+# Kelimeleri frekanslarına göre sırala
 sorted_word_counts = word_counts.most_common()
 
-# Rank (sıra) ve frekans değerlerini çıkar
+# Rank ve frekans değerlerini oluştur
 ranks = np.arange(1, len(sorted_word_counts) + 1)
 frequencies = [count for word, count in sorted_word_counts]
 
-# Zipf Yasası grafiği (log-log eksende)
-plt.figure(figsize=(10,6))
+# Zipf Yasası grafiği
+plt.figure(figsize=(10, 6))
 plt.loglog(ranks, frequencies, marker='.', linestyle='None')
-plt.title("Zipf Yasası Analizi (Ham Veri Üzerinden)")
+
+plt.title("Zipf Yasası Analizi (Ham Ürün Başlıkları)")
 plt.xlabel("Rank (Kelime Sırası)")
 plt.ylabel("Frequency (Kelime Frekansı)")
 plt.grid(True)
 plt.show()
 ````
 
-![Ekran görüntüsü 2025-05-04 184406](https://github.com/user-attachments/assets/c8ad5406-f315-45af-b191-8b2d65191472)
+<img width="1506" height="817" alt="Ekran görüntüsü 2026-11-14 180321" src="https://github.com/user-attachments/assets/7b3db65b-58b2-402e-817a-f74bf88c2e1e" />
+
 
 **Şimdi Temizleme Aşamasına geçiyoruz**
 
 ````
 import re
 
-# Örnek marka listesi — gerekirse genişletilebilir
-brands = ['nike', 'adidas', 'samsung', 'apple', 'xiaomi', 'huawei']
-
 def clean_text(text):
     if pd.isna(text):
         return ""
-    
-    text = text.lower()  # Lowercase (küçük harfe dönüştür)
-    
-    # HTML taglerini temizle
-    text = re.sub(r'<[^>]+_>', '', text)
-    
-    # Marka isimlerini kaldır (önce brands listesi tanımlanmış olmalı)
-    # Burada sadece listeyi kullanıyoruz ve listede yer alan markaları tamamen temizliyoruz
-    text = re.sub(r'(' + '|'.join(map(re.escape, brands)) + r')', '', text)
 
-    # Fiyat ifadelerini kaldır (USD, GBP, EUR, $, £, €)
-    text = re.sub(r'\d+(?:\.\d+)?\s?(usd|gbp|eur|\$|£|€)', '', text)
-    
-    # Ölçü birimlerini kaldır (pound, oz, lb, ml, l, g, mg, inch, in, cm, mm)
-    text = re.sub(r'\d+(?:\.\d+)?\s?(pounds?|lbs?|oz|ml|l|g|gr|x|kg|mg|inch|in|cm|mm)', '', text)
+    # Küçük harfe dönüştür
+    text = text.lower()
 
-    # Kalan tüm sayıları temizle
-    text = re.sub(r'\d+', '', text)
-    
-    # Noktalama işaretlerini kaldır (sadece harf ve rakamlar kalsın)
-    text = re.sub(r'[^\w\s]', '', text)
-    
-    # Fazla boşlukları temizle ve başındaki/sonundaki boşlukları kaldır
+    # HTML etiketlerini temizle
+    text = re.sub(r'<[^>]+>', ' ', text)
+
+    # Para birimi ifadelerini temizle
+    text = re.sub(r'[$£€]', ' ', text)
+    text = re.sub(r'\b(usd|gbp|eur)\b', ' ', text)
+
+    # Sayı ile birim arasındaki boşluğu kaldır
+    text = re.sub(r'(\d+)\s+(gb|tb|mb|kg|mg|ml|cm|mm)', r'\1\2', text)
+
+    # Noktalama işaretlerini temizle
+    # Harf, rakam ve boşlukları koru
+    text = re.sub(r'[^\w\s.]', ' ', text) 
+
+    # Sayıların arasındaki ondalık noktaları koru
+    text = re.sub(r'(?<=\d)\.(?=\d)', 'DECIMALPOINT', text)
+    text = re.sub(r'\.', ' ', text)
+    text = text.replace('DECIMALPOINT', '.')
+
+    # Fazla boşlukları temizle
     text = re.sub(r'\s+', ' ', text).strip()
- 
+
     return text
+
+
+# Temizlenmiş ürün başlıklarını yeni sütuna kaydet
+df['Cleaned Title'] = df['Product Title'].apply(clean_text)
+
+# Örnek sonuçları incele
+print(df[['Product Title', 'Cleaned Title']].head(10))
 ````
+<img width="1492" height="750" alt="Ekran görüntüsü 2026-11-14 180901" src="https://github.com/user-attachments/assets/9157093b-ca23-4593-bfc0-c748cc66f763" />
+
 ````
+# Gerekli NLTK bileşenleri
+from nltk.corpus import wordnet
+from nltk import pos_tag
+
 # Lemmatizer başlat
 lemmatizer = WordNetLemmatizer()
 
-# POS etiketlerini WordNet formatına dönüştüren fonksiyon
+# POS etiketlerini WordNet formatına dönüştür
 def get_pos(tag):
-    if tag.startswith('J'): return wordnet.ADJ     # Sıfat
-    elif tag.startswith('V'): return wordnet.VERB  # Fiil
-    elif tag.startswith('R'): return wordnet.ADV   # Zarf
-    else: return wordnet.NOUN                      # İsim (varsayılan)
+    if tag.startswith('J'):
+        return wordnet.ADJ
+    elif tag.startswith('V'):
+        return wordnet.VERB
+    elif tag.startswith('R'):
+        return wordnet.ADV
+    else:
+        return wordnet.NOUN
 
-# Lemmatizasyon yapan fonksiyon
+# Lemmatization fonksiyonu
 def lemmatize_text(text):
-    tokens = word_tokenize(text)                  # Kelimelere ayır
-    tags = pos_tag(tokens)                        # Her kelimeye tür etiketi ata
-    return " ".join([lemmatizer.lemmatize(w, get_pos(t)) for w, t in tags])  # Lemmatize et
+    tokens = word_tokenize(text)
+    tags = pos_tag(tokens)
 
-# CSV dosyasını oku
-df_sample = pd.read_csv("train_sample_5000.csv")
+    lemmatized_words = [
+        lemmatizer.lemmatize(word, get_pos(tag))
+        for word, tag in tags
+    ]
 
-# Temizlenmiş ve kök hâline getirilmiş başlıkları ekle
-df_sample["cleaned_title"] = df_sample["title"].astype(str).apply(clean_text)
-df_sample["lemmatized_title"] = df_sample["cleaned_title"].apply(lemmatize_text)
+    return " ".join(lemmatized_words)
 
-# Sonuçları kontrol etmek için ilk 5 satırı yazdır
-print(df_sample[["title", "cleaned_title", "lemmatized_title"]].head())
+# Temizlenmiş başlıklara Lemmatization uygula
+df['Lemmatized Title'] = df['Cleaned Title'].apply(lemmatize_text)
+
+# Sonuçları karşılaştır
+print(df[['Product Title', 'Cleaned Title', 'Lemmatized Title']].head(10))
+
 ````
-![image](https://github.com/user-attachments/assets/a577ee08-a50d-4963-a9e5-90c43f00db2f)
+<img width="1520" height="792" alt="Ekran görüntüsü 2026-11-14 181316" src="https://github.com/user-attachments/assets/ad43d4ed-5ec6-4f8c-9f2c-b6444829794a" />
+
 
 ````
+# Gerekli araçları başlat
 lemmatizer = WordNetLemmatizer()
 stemmer = PorterStemmer()
+
+# İngilizce stopword listesi
 stop_words = set(stopwords.words('english'))
 
-def preprocess_sentence(sentence):
-    tokens = word_tokenize(sentence)  # Cümleyi kelimelere ayırdık
-    filtered_tokens = [token.lower() for token in tokens if token.isalpha() and token.lower() not in stop_words]
-    lemmatized_tokens = [lemmatizer.lemmatize(token) for token in filtered_tokens]
-    stemmed_tokens = [stemmer.stem(token) for token in filtered_tokens]
-    return lemmatized_tokens, stemmed_tokens
+# Ürün eşleştirmede anlamlı olabilecek kelimeleri koru
+stop_words -= {'no', 'not', 'nor', 'without'}
 
-# Tüm veriye uyguladık
+# Metin ön işleme fonksiyonu
+def preprocess_sentence(sentence):
+
+    # Tokenization
+    tokens = word_tokenize(sentence)
+
+    # Stopword temizleme
+    filtered_tokens = [
+        token.lower()
+        for token in tokens
+        if token.isalnum() and token.lower() not in stop_words
+    ]
+
+    # POS etiketleme
+    alphabetic_tokens = [
+        token for token in filtered_tokens if token.isalpha()
+    ]
+
+    pos_tags = pos_tag(alphabetic_tokens)
+    pos_dict = {
+        word: tag for word, tag in pos_tags
+    }
+
+    # Lemmatization
+    lemmatized_tokens = [
+        lemmatizer.lemmatize(
+            token,
+            get_pos(pos_dict[token])
+        ) if token.isalpha() else token
+        for token in filtered_tokens
+    ]
+
+    # Stemming
+    stemmed_tokens = [
+        stemmer.stem(token) if token.isalpha() else token
+        for token in filtered_tokens
+    ]
+
+    return filtered_tokens, lemmatized_tokens, stemmed_tokens
+
+
+# PriceRunner verisine uygula
+tokenized_corpus = []
 tokenized_corpus_lemmatized = []
 tokenized_corpus_stemmed = []
 
-for sentence in sentences:
-    lemmatized_tokens, stemmed_tokens = preprocess_sentence(sentence)
+for sentence in df['Cleaned Title'].fillna(''):
+
+    tokens, lemmatized_tokens, stemmed_tokens = preprocess_sentence(sentence)
+
+    tokenized_corpus.append(tokens)
     tokenized_corpus_lemmatized.append(lemmatized_tokens)
     tokenized_corpus_stemmed.append(stemmed_tokens)
+
+
+# İlk 3 sonucu karşılaştır
+for i in range(3):
+
+    print(f"\nÜrün {i+1}")
+    print("Orijinal:", df['Product Title'].iloc[i])
+    print("Tokenized:", tokenized_corpus[i])
+    print("Lemmatized:", tokenized_corpus_lemmatized[i])
+    print("Stemmed:", tokenized_corpus_stemmed[i])
 ````
-````
-# İlk 3 lemmatize edilmiş sonucu gösterdik
-print("Lemmatize Edilmiş İlk 3 Cümle:")
-for i, tokens in enumerate(tokenized_corpus_lemmatized[:3], start=1):
-    print(f"{i}. {tokens}")
-````
-![Ekran görüntüsü 2025-05-04 185555](https://github.com/user-attachments/assets/c68691f6-2b41-441b-bbd0-057dec07a146)
+<img width="1497" height="702" alt="Ekran görüntüsü 2026-11-14 181820" src="https://github.com/user-attachments/assets/397a9eb2-9f7e-49c8-86d5-e1f0ab1a0adf" />
+
 
 ````
-# 1) Önce token listelerini DataFrame’e ekledik
-df_sample['tokens_lemmatized'] = tokenized_corpus_lemmatized
+# Lemmatization sonuçlarını DataFrame'e ekle
+df['Tokens Lemmatized'] = tokenized_corpus_lemmatized
 
-# 2) Ardından bu sütunu boşlukla birleştirip CSV’ye yazdırdık
-df_sample['tokens_lemmatized'] \
-    .apply(lambda lst: ' '.join(lst)) \
-    .to_csv('lemmatized_sentences.csv', index=False, header=['lemmatized_text'])
+# Lemmatization sonuçlarını CSV dosyasına kaydet
+df['Tokens Lemmatized'].apply(
+    lambda tokens: ' '.join(tokens)
+).to_csv(
+    'lemmatized_sentences.csv',
+    index=False,
+    header=['lemmatized_text']
+)
 
-# Stemlenmiş token listelerini DataFrame’e ekledik
-df_sample['tokens_stemmed'] = tokenized_corpus_stemmed
 
-# Stemlenmiş cümleleri boşlukla birleştirip CSV’ye yazdırdık
-df_sample['tokens_stemmed'] \
-    .apply(lambda lst: ' '.join(lst)) \
-    .to_csv('stemmed_sentences.csv', index=False, header=['stemmed_text'])
+# Stemming sonuçlarını DataFrame'e ekle
+df['Tokens Stemmed'] = tokenized_corpus_stemmed
+
+# Stemming sonuçlarını CSV dosyasına kaydet
+df['Tokens Stemmed'].apply(
+    lambda tokens: ' '.join(tokens)
+).to_csv(
+    'stemmed_sentences.csv',
+    index=False,
+    header=['stemmed_text']
+)
+
+
+# Sonuçları kontrol et
+print("Temizlenmiş ve işlenmiş verinin ilk 5 satırı:")
+
+print(df[[
+    'Product Title',
+    'Tokens Lemmatized',
+    'Tokens Stemmed'
+]].head(5))
 ````
-````
-print("\nTemizlenmiş ve işlenmiş verinin ilk 5 satırı:")
-print(df_sample[['title', 'tokens_lemmatized', 'tokens_stemmed']].head(5))
-````
-![Ekran görüntüsü 2025-05-04 191141](https://github.com/user-attachments/assets/10de7a38-64ef-4be0-956e-f46a77789cdd)
+<img width="1490" height="777" alt="image" src="https://github.com/user-attachments/assets/9eda3c4a-e7bf-4cb3-87fe-d24304ae40b2" />
 
-[lemmatizedd.zip](https://github.com/user-attachments/files/20028812/lemmatizedd.zip)
 
-[stemmedd.zip](https://github.com/user-attachments/files/20028811/stemmedd.zip)
+[lemmatized_sentences (1).csv](https://github.com/user-attachments/files/34854683/lemmatized_sentences.1.csv)
+
+[stemmed_sentences (1).csv](https://github.com/user-attachments/files/34854691/stemmed_sentences.1.csv)
+
 ````
 # Lemmatize edilmiş kelimeleri birleştir
-lemmatized_tokens = [token for sublist in df_sample['tokens_lemmatized'] for token in sublist]
+lemmatized_tokens = [
+    token
+    for sublist in tokenized_corpus_lemmatized
+    for token in sublist
+]
 
 # Kelime frekanslarını hesapla
 lemmatized_counts = Counter(lemmatized_tokens)
+
+# Frekanslara göre sırala
 sorted_lemmatized = lemmatized_counts.most_common()
 
-# Rank ve frekans çıkar
+# Rank ve frekans değerlerini oluştur
 ranks_lem = np.arange(1, len(sorted_lemmatized) + 1)
-frequencies_lem = [count for word, count in sorted_lemmatized]
+frequencies_lem = [
+    count for word, count in sorted_lemmatized
+]
 
-# Zipf grafiği (Lemmatized)
-plt.figure(figsize=(10,6))
-plt.loglog(ranks_lem, frequencies_lem, marker='.', linestyle='None', color='green')
+# Zipf grafiği
+plt.figure(figsize=(10, 6))
+plt.loglog(
+    ranks_lem,
+    frequencies_lem,
+    marker='.',
+    linestyle='None',
+    color='green'
+)
+
 plt.title("Zipf Yasası Analizi (Lemmatized Veriler)")
 plt.xlabel("Rank (Kelime Sırası)")
 plt.ylabel("Frequency (Kelime Frekansı)")
 plt.grid(True)
 plt.show()
 ````
-![Ekran görüntüsü 2025-05-28 221739](https://github.com/user-attachments/assets/4c531ab3-8f45-4f63-bb89-2580f3b8e2c3)
+<img width="1478" height="786" alt="Ekran görüntüsü 2026-11-14 182735" src="https://github.com/user-attachments/assets/bda3718d-09ea-4745-a720-89b4e10093db" />
+
 ````
 # Stemlenmiş kelimeleri birleştir
-stemmed_tokens = [token for sublist in df_sample['tokens_stemmed'] for token in sublist]
+stemmed_tokens = [
+    token
+    for sublist in tokenized_corpus_stemmed
+    for token in sublist
+]
 
 # Kelime frekanslarını hesapla
 stemmed_counts = Counter(stemmed_tokens)
+
+# Frekanslara göre sırala
 sorted_stemmed = stemmed_counts.most_common()
 
-# Rank ve frekans çıkar
+# Rank ve frekans değerlerini oluştur
 ranks_stem = np.arange(1, len(sorted_stemmed) + 1)
-frequencies_stem = [count for word, count in sorted_stemmed]
+frequencies_stem = [
+    count for word, count in sorted_stemmed
+]
 
-# Zipf grafiği (Stemmed)
-plt.figure(figsize=(10,6))
-plt.loglog(ranks_stem, frequencies_stem, marker='.', linestyle='None', color='orange')
+# Zipf grafiği
+plt.figure(figsize=(10, 6))
+plt.loglog(
+    ranks_stem,
+    frequencies_stem,
+    marker='.',
+    linestyle='None',
+    color='orange'
+)
+
 plt.title("Zipf Yasası Analizi (Stemmed Veriler)")
 plt.xlabel("Rank (Kelime Sırası)")
 plt.ylabel("Frequency (Kelime Frekansı)")
 plt.grid(True)
 plt.show()
 ````
-![Ekran görüntüsü 2025-05-28 222212](https://github.com/user-attachments/assets/3e2ad0f0-e94a-4f44-a61b-daa3f9135b00)
+<img width="1512" height="798" alt="Ekran görüntüsü 2026-11-14 182910" src="https://github.com/user-attachments/assets/352e4c95-a2a7-4deb-bbf4-e15029518790" />
 
 ````
-from sklearn.feature_extraction.text import TfidfVectorizer
-# Ön işlenmiş token listelerini tekrar metne çeviriyoruz
-lemmatized_texts = [' '.join(tokens) for tokens in tokenized_corpus_lemmatized]
-lemmatized_texts[:3]
+# Lemmatize edilmiş token listelerini metne dönüştür
+lemmatized_texts = [
+    ' '.join(tokens)
+    for tokens in tokenized_corpus_lemmatized
+]
+
+# İlk 3 metni görüntüle
+print("İlk 3 Lemmatized Metin:\n")
+
+for text in lemmatized_texts[:3]:
+    print(text)
+    print("-" * 50)
 ````
-![image](https://github.com/user-attachments/assets/655a9666-2579-48fe-8d83-f80856268822)
+<img width="1472" height="556" alt="Ekran görüntüsü 2026-11-14 183111" src="https://github.com/user-attachments/assets/6a1e5154-ed22-4800-9205-baafce6a1a41" />
+
 
 **Şimdi TF-IDF Uygulama Aşamasına Geçiyoruz**
 ````
-# TF-IDF vektörizerı başlatıyoruz
-vectorizer = TfidfVectorizer()
-# TF-IDF matrisini oluşturuyoruz
-# Terim frekansları, belge frekanslarını hesaplar
-# TF-IDF vektörlerine dönüştürür
-tfidf_matrix = vectorizer.fit_transform(df_sample['lemmatized_title'])
+# TF-IDF vektörizerını başlat
+vectorizer = TfidfVectorizer(
+    token_pattern=r"(?u)\b\w+\b"
+)
 
-# Kelimeleri alalım
-# TF-IDF vektörleştirme işleminde kullanılan tüm kelimelerin eşsiz bir listesini alalım
+# Lemmatized metinlerden TF-IDF matrisi oluştur
+tfidf_matrix = vectorizer.fit_transform(lemmatized_texts)
+
+# Kelimeleri al
 feature_names = vectorizer.get_feature_names_out()
 
-# TF-IDF matrisini pandas DataFrame'e çevir - görünürlük açısından
-tfidf_df = pd.DataFrame(tfidf_matrix.toarray(), columns=feature_names)
+# Matris boyutunu kontrol et
+print("TF-IDF matris boyutu:", tfidf_matrix.shape)
+print("Toplam kelime sayısı:", len(feature_names))
 
-# İlk birkaç satırı gösterelim - ilk 5 cümle
-print(tfidf_df.head())
+# İlk 5 satırı görüntüle
+tfidf_preview = pd.DataFrame(
+    tfidf_matrix[:5].toarray(),
+    columns=feature_names
+)
 
-# Sonuçları bir CSV dosyasına kaydedelim
+print("\nİlk 5 ürünün TF-IDF değerleri:")
+print(tfidf_preview)
+
+# TF-IDF matrisini CSV olarak kaydet
+tfidf_df = pd.DataFrame.sparse.from_spmatrix(
+    tfidf_matrix,
+    columns=feature_names
+)
+
 tfidf_df.to_csv("tfidf_lemmatized.csv", index=False)
-print("✅ tfidf_lemmatized.csv dosyası kaydedildi.")
+
+print("\ntfidf_lemmatized.csv dosyası kaydedildi.")
 ````
-![Ekran görüntüsü 2025-05-04 191514](https://github.com/user-attachments/assets/41fc554d-515e-4cb7-8db6-8505207028b0)
-[lemmatized.zip](https://github.com/user-attachments/files/20028783/lemmatized.zip)
+<img width="1485" height="772" alt="Ekran görüntüsü 2026-11-14 190427" src="https://github.com/user-attachments/assets/25bb1aa6-3a34-40e6-a1e6-4743bbb53472" />
+
+[tfidf_lemmatized (1).csv](https://github.com/user-attachments/files/34855684/tfidf_lemmatized.1.csv)
+
 
 ````
-from sklearn.feature_extraction.text import TfidfVectorizer
+# Stemmed token listelerini metne dönüştür
+stemmed_texts = [
+    ' '.join(tokens)
+    for tokens in tokenized_corpus_stemmed
+]
 
+# TF-IDF vektörizerını başlat
+vectorizer_stem = TfidfVectorizer(
+    token_pattern=r"(?u)\b\w+\b"
+)
 
-# df_sample zaten yüklü ve 'lemmatized_title' sütununu içeriyor
-# Metinleri listeye dönüştür
-texts = df_sample["lemmatized_title"].astype(str).tolist()
-
-# PorterStemmer ile stemming
-stemmer = PorterStemmer()
-stemmed_texts = []
-for text in texts:
-    tokens = word_tokenize(text)                       # Cümleyi kelimelere ayır
-    stemmed = [stemmer.stem(token) for token in tokens]  # Her kelimenin kökünü al
-    stemmed_texts.append(" ".join(stemmed))            # Yeniden cümle hâline getir
-
-# Şimdi TF-IDF işlemini yap
-vectorizer_stem = TfidfVectorizer()
+# Stemmed metinlerden TF-IDF matrisi oluştur
 tfidf_matrix_stem = vectorizer_stem.fit_transform(stemmed_texts)
+
+# Kelimeleri al
 feature_names_stem = vectorizer_stem.get_feature_names_out()
 
-# DataFrame'e çevir ve CSV'ye kaydet
-tfidf_df_stem = pd.DataFrame(tfidf_matrix_stem.toarray(), columns=feature_names_stem)
-tfidf_df_stem.to_csv("tfidf_stemmed.csv", index=False)
+# Matris boyutunu kontrol et
+print("Stemmed TF-IDF matris boyutu:", tfidf_matrix_stem.shape)
+print("Toplam kelime sayısı:", len(feature_names_stem))
 
-# İlk 5 satırı göster
-print(tfidf_df_stem.head())
-print("✅ tfidf_stemmed.csv dosyası kaydedildi.")
+# İlk 5 satırı görüntüle
+tfidf_preview_stem = pd.DataFrame(
+    tfidf_matrix_stem[:5].toarray(),
+    columns=feature_names_stem
+)
+
+print("\nİlk 5 ürünün Stemmed TF-IDF değerleri:")
+print(tfidf_preview_stem)
+
+# CSV dosyasına parçalar hâlinde kaydet
+chunk_size = 500
+
+for start in range(0, tfidf_matrix_stem.shape[0], chunk_size):
+
+    end = min(start + chunk_size, tfidf_matrix_stem.shape[0])
+
+    chunk_df = pd.DataFrame(
+        tfidf_matrix_stem[start:end].toarray(),
+        columns=feature_names_stem
+    )
+
+    # Ürün ID bilgisini de koru
+    chunk_df.insert(
+        0,
+        'Product ID',
+        df['Product ID'].iloc[start:end].values
+    )
+
+    chunk_df.to_csv(
+        "tfidf_stemmed.csv",
+        mode='w' if start == 0 else 'a',
+        header=(start == 0),
+        index=False
+    )
+
+print("\ntfidf_stemmed.csv dosyası kaydedildi.")
 ````
 [stemmed.zip](https://github.com/user-attachments/files/20028785/stemmed.zip)
 
