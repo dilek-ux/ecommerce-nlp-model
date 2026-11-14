@@ -504,19 +504,27 @@ tfidf_preview = pd.DataFrame(
 print("\nİlk 5 ürünün TF-IDF değerleri:")
 print(tfidf_preview)
 
-# TF-IDF matrisini CSV olarak kaydet
-tfidf_df = pd.DataFrame.sparse.from_spmatrix(
-    tfidf_matrix,
-    columns=feature_names
-)
+# Seyrek matrisi uzun formatlı CSV olarak kaydet
+coo_matrix = tfidf_matrix.tocoo()
 
-tfidf_df.to_csv("tfidf_lemmatized.csv", index=False)
+tfidf_lemmatized_sparse = pd.DataFrame({
+    'Product ID': df['Product ID'].to_numpy()[coo_matrix.row],
+    'Word': feature_names[coo_matrix.col],
+    'TF-IDF Score': coo_matrix.data
+})
+
+tfidf_lemmatized_sparse.to_csv(
+    "tfidf_lemmatized.csv",
+    index=False
+)
 
 print("\ntfidf_lemmatized.csv dosyası kaydedildi.")
 ````
-<img width="1485" height="772" alt="Ekran görüntüsü 2026-11-14 190427" src="https://github.com/user-attachments/assets/25bb1aa6-3a34-40e6-a1e6-4743bbb53472" />
+<img width="1495" height="807" alt="Ekran görüntüsü 2026-11-14 194313" src="https://github.com/user-attachments/assets/5eda5857-fca8-4bd4-a543-3fb247db41bc" />
 
-[tfidf_lemmatized (1).csv](https://github.com/user-attachments/files/34855684/tfidf_lemmatized.1.csv)
+
+[tfidf_lemmatized (2).csv](https://github.com/user-attachments/files/34856431/tfidf_lemmatized.2.csv)
+
 
 
 ````
@@ -541,7 +549,7 @@ feature_names_stem = vectorizer_stem.get_feature_names_out()
 print("Stemmed TF-IDF matris boyutu:", tfidf_matrix_stem.shape)
 print("Toplam kelime sayısı:", len(feature_names_stem))
 
-# İlk 5 satırı görüntüle
+# İlk 5 ürünün TF-IDF değerlerini görüntüle
 tfidf_preview_stem = pd.DataFrame(
     tfidf_matrix_stem[:5].toarray(),
     columns=feature_names_stem
@@ -550,165 +558,242 @@ tfidf_preview_stem = pd.DataFrame(
 print("\nİlk 5 ürünün Stemmed TF-IDF değerleri:")
 print(tfidf_preview_stem)
 
-# CSV dosyasına parçalar hâlinde kaydet
-chunk_size = 500
+# Seyrek matrisi uzun formatlı CSV olarak kaydet
+coo_matrix = tfidf_matrix_stem.tocoo()
 
-for start in range(0, tfidf_matrix_stem.shape[0], chunk_size):
+tfidf_stemmed_sparse = pd.DataFrame({
+    'Product ID': df['Product ID'].to_numpy()[coo_matrix.row],
+    'Word': feature_names_stem[coo_matrix.col],
+    'TF-IDF Score': coo_matrix.data
+})
 
-    end = min(start + chunk_size, tfidf_matrix_stem.shape[0])
-
-    chunk_df = pd.DataFrame(
-        tfidf_matrix_stem[start:end].toarray(),
-        columns=feature_names_stem
-    )
-
-    # Ürün ID bilgisini de koru
-    chunk_df.insert(
-        0,
-        'Product ID',
-        df['Product ID'].iloc[start:end].values
-    )
-
-    chunk_df.to_csv(
-        "tfidf_stemmed.csv",
-        mode='w' if start == 0 else 'a',
-        header=(start == 0),
-        index=False
-    )
+tfidf_stemmed_sparse.to_csv(
+    "tfidf_stemmed.csv",
+    index=False
+)
 
 print("\ntfidf_stemmed.csv dosyası kaydedildi.")
 ````
-[stemmed.zip](https://github.com/user-attachments/files/20028785/stemmed.zip)
+<img width="1498" height="532" alt="Ekran görüntüsü 2026-11-14 194522" src="https://github.com/user-attachments/assets/6e580840-198a-4c4d-a77c-3e2350ae6652" />
+
+[tfidf_stemmed (1).csv](https://github.com/user-attachments/files/34856451/tfidf_stemmed.1.csv)
 
 
 ````
-# df_sample üzerinde 'lemmatized_title' sütununu kullanıyoruz
-tfidf = TfidfVectorizer()
-df_tfidf = pd.DataFrame(
-    tfidf.fit_transform(df_sample["lemmatized_title"].astype(str)).toarray(),
-    columns=tfidf.get_feature_names_out()
+# Lemmatize edilmiş ürün başlıkları üzerinden TF-IDF hesaplama
+tfidf = TfidfVectorizer(token_pattern=r"(?u)\b\w+\b")
+
+tfidf_matrix = tfidf.fit_transform(
+    df['Lemmatized Title'].fillna('')
 )
 
-print("İlk cümlede en yüksek TF-IDF skoruna sahip 5 kelime:")
-print(df_tfidf.iloc[0].sort_values(ascending=False).head(5))
+feature_names = tfidf.get_feature_names_out()
+
+print("İlk ürün başlığında en yüksek TF-IDF skoruna sahip 5 kelime:")
+
+first_row = tfidf_matrix[0].toarray().flatten()
+top_indices = first_row.argsort()[-5:][::-1]
+
+for index in top_indices:
+    print(f"{feature_names[index]}: {first_row[index]:.4f}")
 ````
-![Ekran görüntüsü 2025-05-04 191703](https://github.com/user-attachments/assets/811b6a9e-3faa-48de-808f-2111a79852b0)
-
-````
-# PorterStemmer nesnesi
-stemmer = PorterStemmer()
-
-# Her başlık için stemming uygula
-def stem_text(text):
-    tokens = word_tokenize(str(text))
-    stems  = [stemmer.stem(t) for t in tokens]
-    return " ".join(stems)
-
-# Yeni sütunu ekle
-df_sample["stemmed_title"] = df_sample["lemmatized_title"].apply(stem_text)
-
-
-tfidf = TfidfVectorizer()
-# Artık sütun var, doğrudan kullan
-tfidf_matrix = tfidf.fit_transform(df_sample["stemmed_title"].astype(str))
-df_tfidf = pd.DataFrame(tfidf_matrix.toarray(), columns=tfidf.get_feature_names_out())
-
-print("İlk cümlede en yüksek TF-IDF skoruna sahip 5 kelime:")
-print(df_tfidf.iloc[0].sort_values(ascending=False).head(5))
+<img width="1493" height="605" alt="Ekran görüntüsü 2026-11-14 194628" src="https://github.com/user-attachments/assets/9bb5efdc-0294-4cae-b40e-a577595c2057" />
 
 ````
-![Ekran görüntüsü 2025-05-04 191803](https://github.com/user-attachments/assets/56b2bce3-763c-4595-84ab-2fdf02d13f18)
+# Stemmed token listelerini metne dönüştür
+stemmed_texts = [
+    ' '.join(tokens)
+    for tokens in tokenized_corpus_stemmed
+]
+
+# TF-IDF vektörizerını başlat
+tfidf = TfidfVectorizer(
+    token_pattern=r"(?u)\b\w+\b"
+)
+
+# Stemmed metinlerden TF-IDF matrisi oluştur
+tfidf_matrix_stem = tfidf.fit_transform(stemmed_texts)
+
+# Kelimeleri al
+feature_names_stem = tfidf.get_feature_names_out()
+
+print("Stemmed TF-IDF matris boyutu:", tfidf_matrix_stem.shape)
+
+# İlk ürünün en yüksek TF-IDF skoruna sahip 5 kelimesini bul
+first_row = tfidf_matrix_stem.getrow(0)
+
+top_indices = first_row.data.argsort()[-5:][::-1]
+
+print("\nİlk ürün başlığında en yüksek TF-IDF skoruna sahip 5 kelime:")
+
+for index in top_indices:
+    word_index = first_row.indices[index]
+    print(
+        f"{feature_names_stem[word_index]}: "
+        f"{first_row.data[index]:.4f}"
+    )
+
+````
+<img width="1487" height="652" alt="Ekran görüntüsü 2026-11-14 194748" src="https://github.com/user-attachments/assets/b015b575-7429-4ea8-bc09-1af0f63d8cc6" />
+
 
 **Cosine Similarity benzerliğini hesaplıyoruz**
 
 ````
 from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
-vectorizer_stem = TfidfVectorizer()
+# 1. TF-IDF matrisini oluştur
+vectorizer_stem = TfidfVectorizer(
+    token_pattern=r"(?u)\b\w+\b"
+)
+
 tfidf_matrix_stem = vectorizer_stem.fit_transform(stemmed_texts)
 
-# 2. Cosine benzerlik matrisi
-cosine_sim = cosine_similarity(tfidf_matrix_stem)
-
-# 3. Gruplama işlemi
+# 2. Gruplama için değişkenleri hazırla
 groups = []
 visited = set()
 threshold = 0.85
 
-for i in range(len(stemmed_texts)):
-    if i in visited:
-        continue
-    group = [i]
-    visited.add(i)
-    for j in range(i + 1, len(stemmed_texts)):
-        if cosine_sim[i][j] > threshold:
-            group.append(j)
-            visited.add(j)
-    groups.append(group)
+# 3. Benzerlikleri parça parça hesapla
+batch_size = 100
 
-# 4. group_id'leri orijinal veriye ekle
+for start in range(0, len(stemmed_texts), batch_size):
+
+    end = min(start + batch_size, len(stemmed_texts))
+
+    # Sadece mevcut parçanın benzerliklerini hesapla
+    cosine_sim_batch = cosine_similarity(
+        tfidf_matrix_stem[start:end],
+        tfidf_matrix_stem
+    )
+
+    for local_idx in range(end - start):
+
+        i = start + local_idx
+
+        if i in visited:
+            continue
+
+        group = [i]
+        visited.add(i)
+
+        similar_indices = np.where(
+            cosine_sim_batch[local_idx] > threshold
+        )[0]
+
+        for j in similar_indices:
+
+            if j > i and j not in visited:
+                group.append(j)
+                visited.add(j)
+
+        groups.append(group)
+
+    del cosine_sim_batch
+
+# 4. group_id değerlerini oluştur
 group_ids = [None] * len(stemmed_texts)
+
 for group_id, group in enumerate(groups):
     for idx in group:
         group_ids[idx] = group_id
 
-df_sample = df_sample.iloc[:len(stemmed_texts)].copy()  # dataframe
-df_sample["group_id"] = group_ids
+# 5. Grup bilgilerini ana veri setine ekle
+df['group_id_stemmed'] = group_ids
 
-# 5. Kontrol
-print(df_sample[["cleaned_title", "group_id"]].head(20))
+# 6. Sonuçları kontrol et
+print("Toplam grup sayısı:", len(groups))
+print("\nİlk 20 ürünün grupları:")
+
+print(
+    df[['Product Title', 'group_id_stemmed']].head(20)
+)
 ````
-![image](https://github.com/user-attachments/assets/acd55923-1adf-46c5-b88b-d68edc1fc48e)
+<img width="1483" height="751" alt="Ekran görüntüsü 2026-11-14 194927" src="https://github.com/user-attachments/assets/9cd67b68-a6d7-4250-8b12-0ded26c28cf0" />
 
 ````
-# 1) TF-IDF matrisini df_sample üzerinden yeniden oluşturuyoruz
-vectorizer = TfidfVectorizer()
-tfidf_matrix = vectorizer.fit_transform(df_sample["lemmatized_title"].astype(str))
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+
+# 1. PriceRunner veri setinden bir kelime seç
+word = "iphone"
+
+# 2. Kelimenin indeksini bul
 feature_names = vectorizer.get_feature_names_out()
 
-# 2) "creamer" kelimesinin TF-IDF vektörünü al
-creamer_index = list(feature_names).index("creamer")          # 'creamer' indeksini bul
-creamer_vector = tfidf_matrix[:, creamer_index].toarray()    # o terimin vektörü
+if word not in feature_names:
+    print(f"'{word}' kelimesi TF-IDF sözlüğünde bulunamadı.")
 
-# 3) Tüm terimlerin vektörlerini kullanarak sütunlar arası benzerlik hesapladık
-#    (tfidf_matrix.T ile sütun bazlı vektörler elde ediyoruz)
-similarities = cosine_similarity(tfidf_matrix.T[creamer_index], tfidf_matrix.T).flatten()
+else:
+    word_index = np.where(feature_names == word)[0][0]
 
-# 4) En yüksek 5 benzer terimi al (kendisi de geleceği için 6 alıp ilkini atacağız)
-top_idxs = similarities.argsort()[-6:][::-1]
-top_idxs = [i for i in top_idxs if i != creamer_index][:5]
+    # 3. Seçilen kelimenin TF-IDF vektörünü al
+    word_vector = tfidf_matrix.T[word_index]
 
-# 5) Sonuçları yazdırdık
-print("‘creamer’ kelimesine en çok benzeyen 5 kelime:")
-for idx in top_idxs:
-    print(f"{feature_names[idx]}: {similarities[idx]:.4f}")
+    print(f"'{word}' kelimesinin TF-IDF vektörü:")
+    print(word_vector)
+
+    # 4. Diğer kelimelerle kosinüs benzerliğini hesapla
+    similarities = cosine_similarity(
+        word_vector,
+        tfidf_matrix.T
+    ).flatten()
+
+    # 5. En benzer 5 kelimeyi bul
+    top_indices = similarities.argsort()[::-1]
+
+    top_indices = [
+        idx for idx in top_indices
+        if idx != word_index
+    ][:5]
+
+    # 6. Sonuçları göster
+    print(f"\n'{word}' kelimesine en çok benzeyen 5 kelime:")
+
+    for idx in top_indices:
+        print(f"{feature_names[idx]}: {similarities[idx]:.4f}")
 ````
-![Ekran görüntüsü 2025-05-04 191959](https://github.com/user-attachments/assets/c860f093-be16-4130-838d-840bfc0b7cf3)
+<img width="1517" height="802" alt="Ekran görüntüsü 2026-11-14 195708" src="https://github.com/user-attachments/assets/b508d5fa-bb9a-44f4-8e6f-5baf63d1ec73" />
+
 
 **Word2Vec modeline geçiyoruz**
 
 ````
-df = pd.read_csv("train_sample_5000.csv")
-texts = df_sample["title"].dropna().astype(str).tolist()  # eksik değer kontrolü
+# PriceRunner veri setindeki ürün başlıklarını al
+texts = df['Product Title'].dropna().astype(str).tolist()
 
-# Tokenize edilmiş cümle listesi
-tokenized_texts = [word_tokenize(text.lower()) for text in texts]
+# Ürün başlıklarını tokenize et
+tokenized_texts = [
+    word_tokenize(text.lower())
+    for text in texts
+]
+
+# Kontrol
+print("Toplam ürün başlığı:", len(texts))
+
+print("\nİlk 5 tokenize edilmiş ürün başlığı:")
+for tokens in tokenized_texts[:5]:
+    print(tokens)
 ````
-![Ekran görüntüsü 2025-05-04 192253](https://github.com/user-attachments/assets/48f3d09e-8490-4ab7-8eeb-1e39d8fc3918)
+<img width="1487" height="581" alt="Ekran görüntüsü 2026-11-14 195827" src="https://github.com/user-attachments/assets/833606ce-394b-41e8-b55a-0ab48cf2f1e3" />
+
 
 ````
-# 1) df_sample’dan tokenized corpus’ları oluştur
-tokenized_corpus_lemmatized = df_sample["lemmatized_title"] \
-    .dropna().astype(str) \
-    .apply(lambda t: word_tokenize(t.lower())) \
-    .tolist()
+# 1. Tokenized corpus'ları oluştur
+tokenized_corpus_lemmatized = tokenized_corpus_lemmatized
+tokenized_corpus_stemmed = tokenized_corpus_stemmed
 
-tokenized_corpus_stemmed = df_sample["stemmed_title"] \
-    .dropna().astype(str) \
-    .apply(lambda t: word_tokenize(t.lower())) \
-    .tolist()
+# Boş listeleri çıkar
+tokenized_corpus_lemmatized = [
+    tokens for tokens in tokenized_corpus_lemmatized if tokens
+]
 
-# 2) Parametre setleri
+tokenized_corpus_stemmed = [
+    tokens for tokens in tokenized_corpus_stemmed if tokens
+]
+
+# 2. Parametre setleri
 parameters = [
     {'model_type': 'cbow',     'window': 2, 'vector_size': 100},
     {'model_type': 'skipgram', 'window': 2, 'vector_size': 100},
@@ -720,30 +805,52 @@ parameters = [
     {'model_type': 'skipgram', 'window': 4, 'vector_size': 300}
 ]
 
-# 3) Model eğitme ve kaydetme fonksiyonu
+# 3. Model eğitme ve kaydetme fonksiyonu
 def train_and_save_model(corpus, params, prefix):
-    sg_flag = 1 if params['model_type']=='skipgram' else 0
+
+    sg_flag = 1 if params['model_type'] == 'skipgram' else 0
+
     model = Word2Vec(
         sentences=corpus,
         vector_size=params['vector_size'],
         window=params['window'],
         min_count=1,
         sg=sg_flag,
-        workers=4,
-        epochs=10
+        workers=2,
+        epochs=10,
+        seed=42
     )
-    fname = f"{prefix}_{params['model_type']}_w{params['window']}_d{params['vector_size']}.model"
+
+    fname = (
+        f"{prefix}_{params['model_type']}"
+        f"_w{params['window']}_d{params['vector_size']}.model"
+    )
+
     model.save(fname)
-    print(f"→ Saved {fname}")
 
-# 4) Eğit ve kaydet
-for p in parameters:
-    train_and_save_model(tokenized_corpus_lemmatized, p, "lemmatized_model")
+    print(f"Model kaydedildi: {fname}")
 
+    # Model belleğini serbest bırak
+    del model
+
+
+# 4. Lemmatized modelleri eğit ve kaydet
 for p in parameters:
-    train_and_save_model(tokenized_corpus_stemmed,  p, "stemmed_model")
+    train_and_save_model(
+        tokenized_corpus_lemmatized,
+        p,
+        "lemmatized_model"
+    )
+
+# 5. Stemmed modelleri eğit ve kaydet
+for p in parameters:
+    train_and_save_model(
+        tokenized_corpus_stemmed,
+        p,
+        "stemmed_model"
+    )
 ````
-![Ekran görüntüsü 2025-05-04 194712](https://github.com/user-attachments/assets/16634ae3-d7d3-45bf-9eab-b64d65e11d33)
+<img width="1496" height="747" alt="Ekran görüntüsü 2026-11-14 200138" src="https://github.com/user-attachments/assets/69c89580-8aac-45a8-a1e0-feb548389df5" />
 
 
 ````
@@ -767,7 +874,31 @@ print_similar_words(model_1, "Lemmatized CBOW Window 2 Dim 100")
 print_similar_words(model_2, "Stemmed Skipgram Window 4 Dim 100")
 print_similar_words(model_3, "Lemmatized Skipgram Window 4 Dim 300")
 ````
-![Ekran görüntüsü 2025-05-04 194943](https://github.com/user-attachments/assets/ae07729e-7962-4550-88ae-570bf25edc87)
+<img width="1463" height="688" alt="image" src="https://github.com/user-attachments/assets/6d2ac26d-8d69-489a-935b-3a2f23fce6cc" />
+
+
+````
+# Her model için doğru kelime biçimini kullan
+print_similar_words(
+    model_1,
+    "Lemmatized CBOW Window 2 Dim 100",
+    keyword="iphone"
+)
+
+print_similar_words(
+    model_2,
+    "Stemmed Skipgram Window 4 Dim 100",
+    keyword="iphon"
+)
+
+print_similar_words(
+    model_3,
+    "Lemmatized Skipgram Window 4 Dim 300",
+    keyword="iphone"
+)
+````
+<img width="1490" height="708" alt="Ekran görüntüsü 2026-11-14 200623" src="https://github.com/user-attachments/assets/7d17896e-aad4-40b5-955e-cfe0c5c14b0d" />
+
 
 
 # Eğitilen Modellerle Metin Benzerliği Hesaplama ve Değerlendirme
@@ -781,928 +912,703 @@ df_sample = pd.read_csv("lemmatized_sentences.csv")
 # İlk 5 satırı göster
 print(df_sample.head())
 ````
-![Ekran görüntüsü 2025-05-28 112152](https://github.com/user-attachments/assets/30cccf52-fdc2-4874-8ffd-00ccefde6550)
+
 
 ````
-#benzer ilk 5 modeli buluyoruz
-#Cosine Similarity Hesaplıyoruz.
-#lemmatized için
-
-import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
-#TF-IDF vektör matrisini yükledik
-tfidf_df = pd.read_csv("tfidf_lemmatized.csv")
+# 1. İlk ürünün TF-IDF vektörünü sorgu olarak al
+query_vector = tfidf_matrix[0]
 
-#Giriş metni veri setindeydi, ilk satırı aldık
-query_vector = tfidf_df.iloc[0].values.reshape(1, -1)  # 1D vektörü 2D'ye çevirdik
+# 2. Tüm ürünlerle cosine similarity hesapla
+similarities = cosine_similarity(
+    query_vector,
+    tfidf_matrix
+).flatten()
 
-#Tüm veri setiyle benzerlik hesapladık
-similarities = cosine_similarity(query_vector, tfidf_df.values).flatten()
+# 3. En benzer 5 ürünü bul
+top_indices = similarities.argsort()[::-1]
 
-#En benzer 5 sonucu bul (kendisi hariç tutmak için index=0'ı atlayabiliriz )
-top_indices = similarities.argsort()[-6:][::-1]  # En yüksekten düşüğe (ilk kendisi olabilir)
-top_indices = [i for i in top_indices if i != 0][:5]  # Kendisini çıkarıp, ilk 5 benzeri aldık
+# Sorgu ürününün kendisini çıkar
+top_indices = [
+    idx for idx in top_indices if idx != 0
+][:5]
 
-#Sonuçları gösterdik
-print(" En Benzer 5 Cümle (TF-IDF lemmatized):\n")
-for i, idx in enumerate(top_indices):
-    print(f"{i+1}. Satır: {idx}")
-    print(f"   Skor: {similarities[idx]:.4f}")
+# 4. Sonuçları göster
+print("İlk ürün başlığı:")
+print(df['Product Title'].iloc[0])
+
+print("\nEn Benzer 5 Ürün (TF-IDF Lemmatized):\n")
+
+for i, idx in enumerate(top_indices, start=1):
+    print(f"{i}. Ürün: {df['Product Title'].iloc[idx]}")
+    print(f"   Benzerlik Skoru: {similarities[idx]:.4f}")
  ````
-````
-df_sample = pd.read_csv("lemmatized_sentences.csv")  # içerik cümlelerinin olduğu dosya, hangi cümleler olduğunu belirliyoruz.#
-for i, idx in enumerate(top_indices):
-    print(f"{i+1}. Skor: {similarities[idx]:.4f}")
-    print(f"   Metin: {df_sample.iloc[idx]['lemmatized_text']}\n")
-````
-![Ekran görüntüsü 2025-05-28 220518](https://github.com/user-attachments/assets/e432c334-135c-4487-a392-b6a3ab307c48)
+<img width="1577" height="657" alt="Ekran görüntüsü 2026-11-14 200937" src="https://github.com/user-attachments/assets/f27ec1d8-3019-40dc-adea-40f38c323294" />
+
 
 ````
-# 1. TF-IDF (stemmed) matrisini yükledik
-tfidf_stemmed_df = pd.read_csv("tfidf_stemmed.csv")
+# En benzer 5 ürünün skorlarını ve lemmatized metinlerini göster
 
-# 2. Giriş metninin TF-IDF vektörünü aldık (örnek: 0. satırda olduğunu varsayıyoruz)
-query_vector = tfidf_stemmed_df.iloc[0].values.reshape(1, -1)
+for i, idx in enumerate(top_indices, start=1):
 
-# 3. Tüm veri setiyle cosine similarity hesapladık
-similarities = cosine_similarity(query_vector, tfidf_stemmed_df.values).flatten()
+    print(f"{i}. Benzerlik Skoru: {similarities[idx]:.4f}")
 
-# 4. En yüksek benzerliğe sahip 5 farklı metni buluyoruz (kendisi hariç)
-top_indices = similarities.argsort()[-6:][::-1]  # ilk 6 çünkü biri girişin kendisi
-top_indices = [i for i in top_indices if i != 0][:5]  # giriş metnini çıkardık
+    print(f"   Orijinal Ürün: {df['Product Title'].iloc[idx]}")
 
-# 5. Metin karşılıklarını görmek için stemmed.csv'yi yükledik
-df_stemmed_texts = pd.read_csv("stemmed_sentences.csv")
-
-# 6. Sonuçları yazdırdık
-print(" En Benzer 5 Cümle (TF-IDF stemmed):\n")
-for i, idx in enumerate(top_indices):
-    print(f"{i+1}. Skor: {similarities[idx]:.4f}")
-    print(f"   Metin: {df_stemmed_texts.iloc[idx]['stemmed_text']}\n")  # sütun adı örnektir
+    print(f"   Lemmatized Metin: {lemmatized_texts[idx]}\n")
 ````
-![Ekran görüntüsü 2025-05-28 112444](https://github.com/user-attachments/assets/c711ffee-0eb9-4dda-9509-65b4748d9eb5)
-**Word2Vec Benzerliği Hesaplama**
+<img width="1490" height="623" alt="Ekran görüntüsü 2026-11-14 201046" src="https://github.com/user-attachments/assets/808a132c-8145-4202-91bc-64608eec99c4" />
+
+
 ````
-#gerekli kütüphaneleri yükledik
-import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+
+# 1. İlk ürünün Stemmed TF-IDF vektörünü sorgu olarak al
+query_vector = tfidf_matrix_stem[0]
+
+# 2. Tüm ürünlerle cosine similarity hesapla
+similarities_stem = cosine_similarity(
+    query_vector,
+    tfidf_matrix_stem
+).flatten()
+
+# 3. En benzer 5 ürünü bul
+top_indices_stem = similarities_stem.argsort()[::-1]
+
+# Sorgu ürününün kendisini çıkar
+top_indices_stem = [
+    idx for idx in top_indices_stem if idx != 0
+][:5]
+
+# 4. Sonuçları yazdır
+print("İlk ürün başlığı:")
+print(df['Product Title'].iloc[0])
+
+print("\nEn Benzer 5 Ürün (TF-IDF Stemmed):\n")
+
+for i, idx in enumerate(top_indices_stem, start=1):
+
+    print(f"{i}. Benzerlik Skoru: {similarities_stem[idx]:.4f}")
+
+    print(f"   Orijinal Ürün: {df['Product Title'].iloc[idx]}")
+
+    print(f"   Stemmed Metin: {' '.join(tokenized_corpus_stemmed[idx])}\n")
+````
+
+<img width="1481" height="738" alt="Ekran görüntüsü 2026-11-14 201213" src="https://github.com/user-attachments/assets/1adedd39-4d94-4edf-b85e-a7a8450734d2" />
+
+````
 import numpy as np
 from gensim.models import Word2Vec
 from sklearn.metrics.pairwise import cosine_similarity
 ````
 ````
-# Bu fonksiyon bir cümledeki kelimelerin vektörlerini alır ve ortalamasını hesapladık
+# Bir ürün başlığındaki kelimelerin vektörlerini alıp ortalamasını hesapla
 def get_sentence_vector(model, sentence):
+
     vectors = []
+
     for word in sentence.split():
+
         if word in model.wv:
-            vectors.append(model.wv[word])  # kelime modelde varsa vektörünü aldık
+            vectors.append(model.wv[word])
+
     if vectors:
-        return np.mean(vectors, axis=0)  # varsa ortalamasını döndürdük
+        return np.mean(vectors, axis=0)
+
     else:
-        return None  # hiç kelime modele uymuyorsa boş yapsın
+        return None
 ````
 ````
-MODELİN ÇIKTILARI:
 from gensim.models import Word2Vec
-import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+from nltk.tokenize import word_tokenize
 
-# Giriş metni
-query = "creamer nabati non dairy creamer premium reguler kg"
+# 1. Giriş ürününü belirle
+query = df['Product Title'].iloc[0]
 
-# Tüm model dosyaları
+print("Giriş ürün başlığı:", query)
+
+# 2. Çalıştırılacak 8 model
 model_files = [
+    # Lemmatized modeller
     "lemmatized_model_cbow_w2_d100.model",
     "lemmatized_model_skipgram_w2_d100.model",
     "lemmatized_model_cbow_w4_d100.model",
     "lemmatized_model_skipgram_w4_d100.model",
-    "lemmatized_model_cbow_w2_d300.model",
-    "lemmatized_model_skipgram_w2_d300.model",
-    "lemmatized_model_cbow_w4_d300.model",
-    "lemmatized_model_skipgram_w4_d300.model",
+
+    # Stemmed modeller
     "stemmed_model_cbow_w2_d100.model",
     "stemmed_model_skipgram_w2_d100.model",
     "stemmed_model_cbow_w4_d100.model",
-    "stemmed_model_skipgram_w4_d100.model",
-    "stemmed_model_cbow_w2_d300.model",
-    "stemmed_model_skipgram_w2_d300.model",
-    "stemmed_model_cbow_w4_d300.model",
-    "stemmed_model_skipgram_w4_d300.model"
+    "stemmed_model_skipgram_w4_d100.model"
 ]
 
-# Cümleyi vektöre çeviren fonksiyon budur
+# 3. Cümleyi vektöre dönüştüren fonksiyon
 def get_sentence_vector(model, sentence):
+
     words = sentence.split()
-    word_vecs = []
-    for word in words:
-        if word in model.wv:
-            word_vecs.append(model.wv[word])
-    if len(word_vecs) == 0:
+
+    word_vecs = [
+        model.wv[word]
+        for word in words
+        if word in model.wv
+    ]
+
+    if not word_vecs:
         return None
+
     return np.mean(word_vecs, axis=0)
 
-# Döngüyle her model için işlemi yaptık
-for model_path in model_files:
-    print("Şu modelde çalışılıyor:", model_path)
 
-    # Modeli yükledik
+# 4. Modelleri sırayla çalıştır
+for model_path in model_files:
+
+    print("\n" + "=" * 60)
+    print("Model:", model_path)
+
+    # Modeli yükle
     model = Word2Vec.load(model_path)
 
-    # Doğru veri dosyasını ve sütunu seçtik
+    # Model türüne göre metin listesini seç
     if "lemmatized" in model_path:
-        df_sample = pd.read_csv("lemmatized_sentences.csv")
-        text_column = 'lemmatized_text'
+        corpus = tokenized_corpus_lemmatized
+        query_tokens = word_tokenize(clean_text(query))
+
     else:
-        df_sample = pd.read_csv("stemmed_sentences.csv")
-        text_column = 'stemmed_text'
+        corpus = tokenized_corpus_stemmed
+        query_tokens = [
+            stemmer.stem(word)
+            for word in word_tokenize(clean_text(query))
+            if word.isalpha()
+        ]
 
-    # Giriş cümlesini vektöre çevirdik
-    query_vec = get_sentence_vector(model, query)
+    # Giriş metnini vektöre dönüştür
+    query_vec = get_sentence_vector(
+        model,
+        " ".join(query_tokens)
+    )
 
-    # Hiçbir kelime modelde yoksa uyar
     if query_vec is None:
-        print("Giriş cümlesi için modelde temsil edilebilecek kelime bulunamadı.\n")
+        print("Giriş metni model sözlüğünde bulunamadı.")
+        del model
         continue
 
-    # Tüm cümleleri vektöre çevirdik
-    sentence_vectors = []
-    for text in df_sample[text_column]:
-        vec = get_sentence_vector(model, text)
-        sentence_vectors.append(vec)
+    # Ürün başlıklarının vektörlerini hesapla
+    sentence_vectors = [
+        get_sentence_vector(model, " ".join(tokens))
+        for tokens in corpus
+    ]
 
-    # Cosine similarity hesapladık
-    similarities = []
-    for vec in sentence_vectors:
-        if vec is not None:
-            score = cosine_similarity([query_vec], [vec])[0][0]
-        else:
-            score = 0
-        similarities.append(score)
+    # Geçerli vektörleri belirle
+    valid_indices = [
+        i for i, vec in enumerate(sentence_vectors)
+        if vec is not None
+    ]
 
-    # En benzer 5 sonucu bulduk
-    top_indices = np.argsort(similarities)[-5:][::-1]
+    valid_vectors = np.array([
+        sentence_vectors[i] for i in valid_indices
+    ])
 
-    # Sonuçları yazdırdık
-    print(f"\n Model: {model_path}")
-    for i, idx in enumerate(top_indices):
-        print(f"{i+1}. Skor: {similarities[idx]:.4f}")
-        print(f"   Metin: {df_sample.iloc[idx][text_column]}\n")
+    # Cosine Similarity hesapla
+    similarities = cosine_similarity(
+        query_vec.reshape(1, -1),
+        valid_vectors
+    ).flatten()
+
+    # Giriş ürününün kendisini hariç tut
+    valid_positions = [
+        pos for pos, idx in enumerate(valid_indices)
+        if idx != 0
+    ]
+
+    # En benzer 5 ürünü bul
+    top_positions = sorted(
+        valid_positions,
+        key=lambda pos: similarities[pos],
+        reverse=True
+    )[:5]
+
+    # Sonuçları göster
+    print("\nEn Benzer 5 Ürün:")
+
+    for rank, position in enumerate(top_positions, start=1):
+
+        idx = valid_indices[position]
+
+        print(f"\n{rank}. Benzerlik Skoru: {similarities[position]:.4f}")
+        print("Ürün:", df['Product Title'].iloc[idx])
+
+    # Belleği serbest bırak
+    del model, sentence_vectors, valid_vectors, similarities
 ````
 ````
 MODELİN ÇIKTILARI
-Şu modelde çalışılıyor: lemmatized_model_cbow_w2_d100.model
+Giriş ürün başlığı: apple iphone 8 plus 64gb silver
 
- Model: lemmatized_model_cbow_w2_d100.model
-1. Skor: 1.0000
-   Metin: creamer nabati non dairy creamer premium reguler kg
+============================================================
+Model: lemmatized_model_cbow_w2_d100.model
 
-2. Skor: 0.9994
-   Metin: miranda hair color premium bleaching
+En Benzer 5 Ürün:
 
-3. Skor: 0.9993
-   Metin: bantal ala duduk silikon gel empuk kualitas premium
+1. Benzerlik Skoru: 1.0000
+Ürün: apple iphone 8 plus 64 gb silver
 
-4. Skor: 0.9993
-   Metin: denay premium deesca pink
+2. Benzerlik Skoru: 0.9953
+Ürün: apple iphone 8 plus 256gb silver
 
-5. Skor: 0.9993
-   Metin: garam himalaya kg pink himsalt original premium
+3. Benzerlik Skoru: 0.9943
+Ürün: apple iphone 8 plus 64gb space grey
 
-Şu modelde çalışılıyor: lemmatized_model_skipgram_w2_d100.model
+4. Benzerlik Skoru: 0.9943
+Ürün: apple iphone 8 plus 64 gb space grey
 
- Model: lemmatized_model_skipgram_w2_d100.model
-1. Skor: 1.0000
-   Metin: creamer nabati non dairy creamer premium reguler kg
+5. Benzerlik Skoru: 0.9943
+Ürün: apple iphone 8 plus 64gb space grey
 
-2. Skor: 0.9986
-   Metin: kit grand prix premium compound ml
+============================================================
+Model: lemmatized_model_skipgram_w2_d100.model
 
-3. Skor: 0.9986
-   Metin: kail biru mix carbon
+En Benzer 5 Ürün:
 
-4. Skor: 0.9985
-   Metin: garam himalaya pink salt gr premium original safiya herbal
+1. Benzerlik Skoru: 1.0000
+Ürün: apple iphone 8 plus 64 gb silver
 
-5. Skor: 0.9984
-   Metin: lakban gold tape tipe biru inch mm coklat high quality
+2. Benzerlik Skoru: 0.9956
+Ürün: apple iphone 8 plus 256gb silver
 
-Şu modelde çalışılıyor: lemmatized_model_cbow_w4_d100.model
+3. Benzerlik Skoru: 0.9933
+Ürün: apple iphone 8 plus 64gb silver unlocked
 
- Model: lemmatized_model_cbow_w4_d100.model
-1. Skor: 1.0000
-   Metin: creamer nabati non dairy creamer premium reguler kg
+4. Benzerlik Skoru: 0.9914
+Ürün: apple iphone 8 plus 64 gb spacegrau
 
-2. Skor: 0.9998
-   Metin: bantal ala duduk silikon gel empuk kualitas premium
+5. Benzerlik Skoru: 0.9911
+Ürün: apple iphone 8 plus 64 gb rt
 
-3. Skor: 0.9997
-   Metin: tabita skin care original set non d lengkap dengan paper bag kecil
+============================================================
+Model: lemmatized_model_cbow_w4_d100.model
 
-4. Skor: 0.9997
-   Metin: garam himalaya kg pink himsalt original premium
+En Benzer 5 Ürün:
 
-5. Skor: 0.9997
-   Metin: garam himalaya pink salt gr premium original safiya herbal
+1. Benzerlik Skoru: 1.0000
+Ürün: apple iphone 8 plus 64 gb silver
 
-Şu modelde çalışılıyor: lemmatized_model_skipgram_w4_d100.model
+2. Benzerlik Skoru: 0.9942
+Ürün: apple iphone 8 plus 64gb space grey
 
- Model: lemmatized_model_skipgram_w4_d100.model
-1. Skor: 1.0000
-   Metin: creamer nabati non dairy creamer premium reguler kg
+3. Benzerlik Skoru: 0.9942
+Ürün: apple iphone 8 plus 64 gb space grey
 
-2. Skor: 0.9943
-   Metin: kit grand prix premium compound ml
+4. Benzerlik Skoru: 0.9942
+Ürün: apple iphone 8 plus 64gb space grey
 
-3. Skor: 0.9919
-   Metin: woca coklat peppermint premium chocolate gram
+5. Benzerlik Skoru: 0.9942
+Ürün: apple iphone 8 plus 64gb space grey
 
-4. Skor: 0.9906
-   Metin: kapsul kutuk premium menyembuhkan luka pasca oprasi luka jahitan meningkatkan produksi asi
+============================================================
+Model: lemmatized_model_skipgram_w4_d100.model
 
-5. Skor: 0.9893
-   Metin: longan kering oren lengkeng kering dried longan premium
+En Benzer 5 Ürün:
 
-Şu modelde çalışılıyor: lemmatized_model_cbow_w2_d300.model
+1. Benzerlik Skoru: 1.0000
+Ürün: apple iphone 8 plus 64 gb silver
 
- Model: lemmatized_model_cbow_w2_d300.model
-1. Skor: 1.0000
-   Metin: creamer nabati non dairy creamer premium reguler kg
+2. Benzerlik Skoru: 0.9931
+Ürün: apple iphone 8 plus 64gb silver unlocked
 
-2. Skor: 0.9996
-   Metin: original premium hajar pasti jahanam
+3. Benzerlik Skoru: 0.9908
+Ürün: apple iphone 8 plus 256gb silver
 
-3. Skor: 0.9996
-   Metin: sulami pelangsing kemasan premium original
+4. Benzerlik Skoru: 0.9899
+Ürün: apple iphone 8 plus 64 gb spacegrau
 
-4. Skor: 0.9996
-   Metin: saffron gr gr super negin premium quality original
+5. Benzerlik Skoru: 0.9897
+Ürün: iphone 8 plus 256gb silver mq8q2b/a wc01
 
-5. Skor: 0.9996
-   Metin: bantal ala duduk silikon gel empuk kualitas premium
+============================================================
+Model: stemmed_model_cbow_w2_d100.model
 
-Şu modelde çalışılıyor: lemmatized_model_skipgram_w2_d300.model
+En Benzer 5 Ürün:
 
- Model: lemmatized_model_skipgram_w2_d300.model
-1. Skor: 1.0000
-   Metin: creamer nabati non dairy creamer premium reguler kg
+1. Benzerlik Skoru: 0.9875
+Ürün: apple iphone xs 256gb silver
 
-2. Skor: 0.9994
-   Metin: saffron gr gr super negin premium quality original
+2. Benzerlik Skoru: 0.9875
+Ürün: apple iphone xs 256gb silver
 
-3. Skor: 0.9994
-   Metin: garam himalaya pink salt gr premium original safiya herbal
+3. Benzerlik Skoru: 0.9875
+Ürün: apple iphone xs 256gb silver
 
-4. Skor: 0.9993
-   Metin: sulami pelangsing kemasan premium original
+4. Benzerlik Skoru: 0.9872
+Ürün: apple iphone xs max 512 gb silver
 
-5. Skor: 0.9993
-   Metin: garam himalaya kg pink himsalt original premium
+5. Benzerlik Skoru: 0.9854
+Ürün: apple iphone xs max 256gb silver
 
-Şu modelde çalışılıyor: lemmatized_model_cbow_w4_d300.model
+============================================================
+Model: stemmed_model_skipgram_w2_d100.model
 
- Model: lemmatized_model_cbow_w4_d300.model
-1. Skor: 1.0000
-   Metin: creamer nabati non dairy creamer premium reguler kg
+En Benzer 5 Ürün:
 
-2. Skor: 0.9999
-   Metin: garam himalaya kg pink himsalt original premium
+1. Benzerlik Skoru: 0.9832
+Ürün: apple iphone 6s plus
 
-3. Skor: 0.9999
-   Metin: free kardus calista otaru premium
+2. Benzerlik Skoru: 0.9824
+Ürün: apple iphone 6s plus 64gb silver
 
-4. Skor: 0.9999
-   Metin: garam himalaya pink salt gr premium original safiya herbal
+3. Benzerlik Skoru: 0.9790
+Ürün: apple iphone 7 plus 128gb silver
 
-5. Skor: 0.9999
-   Metin: sulami pelangsing kemasan premium original
+4. Benzerlik Skoru: 0.9790
+Ürün: apple iphone 7 plus 128gb silver
 
-Şu modelde çalışılıyor: lemmatized_model_skipgram_w4_d300.model
+5. Benzerlik Skoru: 0.9758
+Ürün: apple iphone 8 plus 256gb silver
 
- Model: lemmatized_model_skipgram_w4_d300.model
-1. Skor: 1.0000
-   Metin: creamer nabati non dairy creamer premium reguler kg
+============================================================
+Model: stemmed_model_cbow_w4_d100.model
 
-2. Skor: 0.9984
-   Metin: kit grand prix premium compound ml
+En Benzer 5 Ürün:
 
-3. Skor: 0.9967
-   Metin: woca coklat peppermint premium chocolate gram
+1. Benzerlik Skoru: 0.9885
+Ürün: apple iphone xs 256gb silver
 
-4. Skor: 0.9958
-   Metin: kapsul kutuk premium menyembuhkan luka pasca oprasi luka jahitan meningkatkan produksi asi
+2. Benzerlik Skoru: 0.9885
+Ürün: apple iphone xs 256gb silver
 
-5. Skor: 0.9951
-   Metin: longan kering oren lengkeng kering dried longan premium
+3. Benzerlik Skoru: 0.9885
+Ürün: apple iphone xs 256gb silver
 
-Şu modelde çalışılıyor: stemmed_model_cbow_w2_d100.model
+4. Benzerlik Skoru: 0.9852
+Ürün: apple iphone xs max 512 gb silver
 
- Model: stemmed_model_cbow_w2_d100.model
-1. Skor: 0.9999
-   Metin: creamer nabati non dairi creamer premium regul kg
+5. Benzerlik Skoru: 0.9849
+Ürün: apple iphone 7 plus 128gb silver
 
-2. Skor: 0.9995
-   Metin: sulami pelangs kemasan premium origin
+============================================================
+Model: stemmed_model_skipgram_w4_d100.model
 
-3. Skor: 0.9995
-   Metin: saffron gr gr super negin premium qualiti origin
+En Benzer 5 Ürün:
 
-4. Skor: 0.9994
-   Metin: sulami pelangs origin kemasan premium kjp kapsul pelangs origin
+1. Benzerlik Skoru: 0.9804
+Ürün: apple iphone 6s plus
 
-5. Skor: 0.9994
-   Metin: garam himalaya pink salt gr premium origin safiya herbal
+2. Benzerlik Skoru: 0.9773
+Ürün: apple iphone 6s plus 64gb silver
 
-Şu modelde çalışılıyor: stemmed_model_skipgram_w2_d100.model
+3. Benzerlik Skoru: 0.9725
+Ürün: apple iphone 7 plus 128gb silver
 
- Model: stemmed_model_skipgram_w2_d100.model
-1. Skor: 0.9998
-   Metin: creamer nabati non dairi creamer premium regul kg
+4. Benzerlik Skoru: 0.9725
+Ürün: apple iphone 7 plus 128gb silver
 
-2. Skor: 0.9987
-   Metin: kit grand prix premium compound ml
+5. Benzerlik Skoru: 0.9666
+Ürün: apple iphone 8 plus 256gb silver
 
-3. Skor: 0.9984
-   Metin: garam himalaya pink salt gr premium origin safiya herbal
-
-4. Skor: 0.9984
-   Metin: saffron gr gr super negin premium qualiti origin
-
-5. Skor: 0.9982
-   Metin: garam himalaya kg pink himsalt origin premium
-
-Şu modelde çalışılıyor: stemmed_model_cbow_w4_d100.model
-
- Model: stemmed_model_cbow_w4_d100.model
-1. Skor: 1.0000
-   Metin: creamer nabati non dairi creamer premium regul kg
-
-2. Skor: 0.9998
-   Metin: sulami pelangs kemasan premium origin
-
-3. Skor: 0.9998
-   Metin: high qualiti mask tape lakban kerta ukuran cm
-
-4. Skor: 0.9998
-   Metin: origin premium hajar pasti jahanam
-
-5. Skor: 0.9997
-   Metin: sulami pelangs origin kemasan premium kjp kapsul pelangs origin
-
-Şu modelde çalışılıyor: stemmed_model_skipgram_w4_d100.model
-
- Model: stemmed_model_skipgram_w4_d100.model
-1. Skor: 0.9983
-   Metin: creamer nabati non dairi creamer premium regul kg
-
-2. Skor: 0.9925
-   Metin: kit grand prix premium compound ml
-
-3. Skor: 0.9905
-   Metin: woca coklat peppermint premium chocol gram
-
-4. Skor: 0.9900
-   Metin: high qualiti mask tape lakban kerta ukuran cm
-
-5. Skor: 0.9871
-   Metin: longan kere oren lengkeng kere dri longan premium
-
-Şu modelde çalışılıyor: stemmed_model_cbow_w2_d300.model
-
- Model: stemmed_model_cbow_w2_d300.model
-1. Skor: 0.9999
-   Metin: creamer nabati non dairi creamer premium regul kg
-
-2. Skor: 0.9997
-   Metin: origin premium hajar pasti jahanam
-
-3. Skor: 0.9996
-   Metin: buku metod penelitian kuantitatif kualitatif dan r oleh sugiyono
-
-4. Skor: 0.9996
-   Metin: buku metod penelitian kuantitatif kualitatif dan r prof sugiyono
-
-5. Skor: 0.9996
-   Metin: kz case high qualiti eva bag untuk earphon iem earbud earpod storag pouch
-
-Şu modelde çalışılıyor: stemmed_model_skipgram_w2_d300.model
-
- Model: stemmed_model_skipgram_w2_d300.model
-1. Skor: 0.9999
-   Metin: creamer nabati non dairi creamer premium regul kg
-
-2. Skor: 0.9994
-   Metin: kit grand prix premium compound ml
-
-3. Skor: 0.9993
-   Metin: woca coklat peppermint premium chocol gram
-
-4. Skor: 0.9993
-   Metin: memo quen raisa heel kaca transparan premium cm real pict
-
-5. Skor: 0.9992
-   Metin: pita satin inch cm yard brand sakura
-
-Şu modelde çalışılıyor: stemmed_model_cbow_w4_d300.model
-
- Model: stemmed_model_cbow_w4_d300.model
-1. Skor: 1.0000
-   Metin: creamer nabati non dairi creamer premium regul kg
-
-2. Skor: 0.9999
-   Metin: bantal ala duduk silikon gel empuk kualita premium
-
-3. Skor: 0.9999
-   Metin: garam himalaya pink salt gr premium origin safiya herbal
-
-4. Skor: 0.9999
-   Metin: promo new joju collagen primeros isi tablet halal origin thailand cl colagen termurah
-
-5. Skor: 0.9999
-   Metin: garam himalaya kg pink himsalt origin premium
-
-Şu modelde çalışılıyor: stemmed_model_skipgram_w4_d300.model
-
- Model: stemmed_model_skipgram_w4_d300.model
-1. Skor: 0.9990
-   Metin: creamer nabati non dairi creamer premium regul kg
-
-2. Skor: 0.9977
-   Metin: kit grand prix premium compound ml
-
-3. Skor: 0.9962
-   Metin: woca coklat peppermint premium chocol gram
-
-4. Skor: 0.9951
-   Metin: longan kere oren lengkeng kere dri longan premium
-
-5. Skor: 0.9939
-   Metin: kapsul kutuk premium menyembuhkan luka pasca oprasi luka jahitan meningkatkan produksi asi
 ````
 **Sıralama Tutarlılığı Değerlendirmesi (Ranking Agreement)**
 **Jaccard benzerliği hesaplama**
 ````
 from gensim.models import Word2Vec
-import pandas as pd
 import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
 import json
+from sklearn.metrics.pairwise import cosine_similarity
+from nltk.tokenize import word_tokenize
 
-# Giriş metni
-query = "creamer nabati non dairy creamer premium reguler kg"
+# 1. Giriş ürününü belirle
+query = df['Product Title'].iloc[0]
 
-# Word2Vec model dosya adları
+print("Giriş ürün başlığı:", query)
+
+# 2. Çalıştırılacak 8 Word2Vec modeli
 model_files = [
+    # Lemmatized modeller
     "lemmatized_model_cbow_w2_d100.model",
     "lemmatized_model_skipgram_w2_d100.model",
     "lemmatized_model_cbow_w4_d100.model",
     "lemmatized_model_skipgram_w4_d100.model",
-    "lemmatized_model_cbow_w2_d300.model",
-    "lemmatized_model_skipgram_w2_d300.model",
-    "lemmatized_model_cbow_w4_d300.model",
-    "lemmatized_model_skipgram_w4_d300.model",
+
+    # Stemmed modeller
     "stemmed_model_cbow_w2_d100.model",
     "stemmed_model_skipgram_w2_d100.model",
     "stemmed_model_cbow_w4_d100.model",
-    "stemmed_model_skipgram_w4_d100.model",
-    "stemmed_model_cbow_w2_d300.model",
-    "stemmed_model_skipgram_w2_d300.model",
-    "stemmed_model_cbow_w4_d300.model",
-    "stemmed_model_skipgram_w4_d300.model"
+    "stemmed_model_skipgram_w4_d100.model"
 ]
 
-# Cümleyi ortalama vektöre çeviren fonksiyon
+# 3. Cümleyi ortalama vektöre dönüştüren fonksiyon
 def get_sentence_vector(model, sentence):
-    word_vecs = [model.wv[word] for word in sentence.split() if word in model.wv]
-    return np.mean(word_vecs, axis=0) if word_vecs else None
 
-# Tüm sonuçları saklayacağımız sözlük
+    word_vecs = [
+        model.wv[word]
+        for word in sentence.split()
+        if word in model.wv
+    ]
+
+    if not word_vecs:
+        return None
+
+    return np.mean(word_vecs, axis=0)
+
+
+# 4. Her modelin ilk 5 sonucunu saklayacağımız sözlük
 model_top_indices = {}
 
-# Dosya yolları
-df_sample = "lemmatized_sentences.csv"
-df_sample = "stemmed_sentences.csv"
-
-# Her model için işlem yap
+# 5. Modelleri sırayla çalıştır
 for model_path in model_files:
-    print(f" İşleniyor: {model_path}")
+
+    print(f"\nİşleniyor: {model_path}")
 
     model = Word2Vec.load(model_path)
 
-    # Veri kümesini yükle
+    # Model türüne göre uygun metin listesini seç
     if "lemmatized" in model_path:
-        df_sample = pd.read_csv("lemmatized_sentences.csv")
-        text_column = 'lemmatized_text'
-    else:
-        df_sample = pd.read_csv("stemmed_sentences.csv")
-        text_column = 'stemmed_text'
 
-    # Giriş cümlesinin vektörü
-    query_vec = get_sentence_vector(model, query)
+        corpus = tokenized_corpus_lemmatized
+        query_tokens = word_tokenize(clean_text(query))
+
+    else:
+
+        corpus = tokenized_corpus_stemmed
+        query_tokens = [
+            stemmer.stem(word)
+            for word in word_tokenize(clean_text(query))
+            if word.isalpha()
+        ]
+
+    # Giriş ürününün vektörünü oluştur
+    query_vec = get_sentence_vector(
+        model,
+        " ".join(query_tokens)
+    )
+
     if query_vec is None:
-        print(f"⚠️ Model '{model_path}' giriş cümlesini temsil edemedi.")
+        print("Giriş ürünü model tarafından temsil edilemedi.")
+        del model
         continue
 
-    # Her satır için ortalama vektör ve benzerlik
-    sentence_vectors = [get_sentence_vector(model, text) for text in df_sample[text_column]]
-    similarities = [
-        cosine_similarity([query_vec], [vec])[0][0] if vec is not None else 0
-        for vec in sentence_vectors
+    # Tüm ürünlerin vektörlerini oluştur
+    sentence_vectors = [
+        get_sentence_vector(model, " ".join(tokens))
+        for tokens in corpus
     ]
 
-    # En benzer 5 cümleyi bul
-    top_indices = np.argsort(similarities)[-5:][::-1]
-    model_top_indices[model_path] = top_indices.tolist()
+    # Geçerli vektörleri belirle
+    valid_indices = [
+        i for i, vec in enumerate(sentence_vectors)
+        if vec is not None and i != 0
+    ]
 
-    # İsteğe bağlı: sonuçları terminale yazdır
-    print(f"İlk 5 index: {top_indices.tolist()}\n")
+    valid_vectors = np.array([
+        sentence_vectors[i] for i in valid_indices
+    ])
 
-# JSON olarak kaydet
+    # Cosine Similarity hesapla
+    similarities = cosine_similarity(
+        query_vec.reshape(1, -1),
+        valid_vectors
+    ).flatten()
+
+    # En benzer 5 ürünü bul
+    top_positions = np.argsort(similarities)[::-1][:5]
+
+    top_indices = [
+        valid_indices[position]
+        for position in top_positions
+    ]
+
+    # Sonuçları sakla
+    model_top_indices[model_path] = top_indices
+
+    print("İlk 5 ürünün indeksleri:", top_indices)
+
+    del model, sentence_vectors, valid_vectors, similarities
+
+
+# 6. Model sonuçlarını JSON dosyasına kaydet
 with open("model_top_indices.json", "w") as f:
     json.dump(model_top_indices, f, indent=2)
 
-print("Tüm modellerin ilk 5 sonucu 'model_top_indices.json' dosyasına kaydedildi.")
+print("\nTüm modellerin sonuçları kaydedildi.")
 ````
+
+[model_top_indices (1).json](https://github.com/user-attachments/files/34857082/model_top_indices.1.json)
+
 ````
-MODELİN ÇIKTILARI[model_top_indices.json](https://github.com/user-attachments/files/20493962/model_top_indices.json)
+MODELİN ÇIKTILARI
+Giriş ürün başlığı: apple iphone 8 plus 64gb silver
 
 İşleniyor: lemmatized_model_cbow_w2_d100.model
-📌 İlk 5 index: [0, 2903, 704, 4593, 1509]
+İlk 5 ürünün indeksleri: [15, 179, 3, 6, 7]
 
- İşleniyor: lemmatized_model_skipgram_w2_d100.model
-📌 İlk 5 index: [0, 1492, 123, 4642, 4215]
+İşleniyor: lemmatized_model_skipgram_w2_d100.model
+İlk 5 ürünün indeksleri: [15, 179, 16, 1, 916]
 
- İşleniyor: lemmatized_model_cbow_w4_d100.model
-📌 İlk 5 index: [0, 704, 4724, 1509, 4642]
+İşleniyor: lemmatized_model_cbow_w4_d100.model
+İlk 5 ürünün indeksleri: [15, 6, 3, 9, 8]
 
- İşleniyor: lemmatized_model_skipgram_w4_d100.model
-📌 İlk 5 index: [0, 1492, 3406, 4431, 2266]
+İşleniyor: lemmatized_model_skipgram_w4_d100.model
+İlk 5 ürünün indeksleri: [15, 16, 179, 1, 188]
 
- İşleniyor: lemmatized_model_cbow_w2_d300.model
-📌 İlk 5 index: [0, 1633, 4128, 4211, 704]
+İşleniyor: stemmed_model_cbow_w2_d100.model
+İlk 5 ürünün indeksleri: [903, 895, 902, 985, 952]
 
- İşleniyor: lemmatized_model_skipgram_w2_d300.model
-📌 İlk 5 index: [0, 4211, 4642, 4128, 1509]
+İşleniyor: stemmed_model_skipgram_w2_d100.model
+İlk 5 ürünün indeksleri: [289, 2845, 233, 227, 179]
 
- İşleniyor: lemmatized_model_cbow_w4_d300.model
-📌 İlk 5 index: [0, 1509, 4518, 4642, 4128]
+İşleniyor: stemmed_model_cbow_w4_d100.model
+İlk 5 ürünün indeksleri: [895, 903, 902, 985, 227]
 
- İşleniyor: lemmatized_model_skipgram_w4_d300.model
-📌 İlk 5 index: [0, 1492, 3406, 4431, 2266]
+İşleniyor: stemmed_model_skipgram_w4_d100.model
+İlk 5 ürünün indeksleri: [289, 2845, 227, 233, 179]
 
- İşleniyor: stemmed_model_cbow_w2_d100.model
-📌 İlk 5 index: [0, 4128, 4211, 106, 4642]
-
- İşleniyor: stemmed_model_skipgram_w2_d100.model
-📌 İlk 5 index: [0, 1492, 4642, 4211, 1509]
-
- İşleniyor: stemmed_model_cbow_w4_d100.model
-📌 İlk 5 index: [0, 4128, 3425, 1633, 106]
-
- İşleniyor: stemmed_model_skipgram_w4_d100.model
-📌 İlk 5 index: [0, 1492, 3406, 3425, 2266]
-
- İşleniyor: stemmed_model_cbow_w2_d300.model
-📌 İlk 5 index: [0, 1633, 2072, 3391, 328]
-
- İşleniyor: stemmed_model_skipgram_w2_d300.model
-📌 İlk 5 index: [0, 1492, 3406, 801, 332]
-
- İşleniyor: stemmed_model_cbow_w4_d300.model
-📌 İlk 5 index: [0, 704, 4642, 3382, 1509]
-
- İşleniyor: stemmed_model_skipgram_w4_d300.model
-📌 İlk 5 index: [0, 1492, 3406, 2266, 4431]
-
-✅ Tüm modellerin ilk 5 sonucu 'model_top_indices.json' dosyasına kaydedildi.
+Tüm modellerin sonuçları kaydedildi.
 ````
-[model_top_indices.json](https://github.com/user-attachments/files/20493971/model_top_indices.json)
+
+
 
 **Jaccard Benzerlik Matrisi Hesaplama**
 ````
 import json
 import pandas as pd
 
-# JSON'dan veriyi oku
+# 1. JSON dosyasından model sonuçlarını yükle
 with open("model_top_indices.json", "r") as f:
     model_indices = json.load(f)
 
-# Model isimlerini sırayla al
+# 2. Model isimlerini al
 model_names = list(model_indices.keys())
 
-# Boş Jaccard benzerlik matrisini başlat
-jaccard_matrix = pd.DataFrame(index=model_names, columns=model_names)
+# 3. Boş Jaccard benzerlik matrisi oluştur
+jaccard_matrix = pd.DataFrame(
+    0.0,
+    index=model_names,
+    columns=model_names
+)
 
-# Jaccard benzerliklerini hesapla
+# 4. Modeller arasındaki Jaccard benzerliklerini hesapla
 for model_a in model_names:
+
     set_a = set(model_indices[model_a])
+
     for model_b in model_names:
+
         set_b = set(model_indices[model_b])
+
         intersection = len(set_a & set_b)
         union = len(set_a | set_b)
-        jaccard_score = intersection / union if union != 0 else 0
-        jaccard_matrix.loc[model_a, model_b] = round(jaccard_score, 2)
 
-# CSV olarak kaydet 
-jaccard_matrix.to_csv("jaccard_similarity_matrix.csv")
+        jaccard_score = (
+            intersection / union if union != 0 else 0
+        )
 
-# Yazdır (konsol için)
+        jaccard_matrix.loc[model_a, model_b] = round(
+            jaccard_score, 2
+        )
+
+# 5. CSV dosyasına kaydet
+jaccard_matrix.to_csv(
+    "jaccard_similarity_matrix.csv",
+    encoding="utf-8-sig"
+)
+
+# 6. Sonuçları görüntüle
+print("Modeller Arası Jaccard Benzerlik Matrisi:\n")
 print(jaccard_matrix)
+
+print("\nJaccard matrisi CSV dosyasına kaydedildi.")
 ````
+
+[jaccard_similarity_matrix (2).csv](https://github.com/user-attachments/files/34857106/jaccard_similarity_matrix.2.csv)
+
 ````
-MODEL ÇIKTILARI
-lemmatized_model_cbow_w2_d100.model  \
-lemmatized_model_cbow_w2_d100.model                                     1.0   
-lemmatized_model_skipgram_w2_d100.model                                0.11   
-lemmatized_model_cbow_w4_d100.model                                    0.43   
-lemmatized_model_skipgram_w4_d100.model                                0.11   
-lemmatized_model_cbow_w2_d300.model                                    0.25   
-lemmatized_model_skipgram_w2_d300.model                                0.25   
-lemmatized_model_cbow_w4_d300.model                                    0.25   
-lemmatized_model_skipgram_w4_d300.model                                0.11   
-stemmed_model_cbow_w2_d100.model                                       0.11   
-stemmed_model_skipgram_w2_d100.model                                   0.25   
-stemmed_model_cbow_w4_d100.model                                       0.11   
-stemmed_model_skipgram_w4_d100.model                                   0.11   
-stemmed_model_cbow_w2_d300.model                                       0.11   
-stemmed_model_skipgram_w2_d300.model                                   0.11   
-stemmed_model_cbow_w4_d300.model                                       0.43   
-stemmed_model_skipgram_w4_d300.model                                   0.11   
+Modeller Arası Jaccard Benzerlik Matrisi:
 
-                                        lemmatized_model_skipgram_w2_d100.model  \
-lemmatized_model_cbow_w2_d100.model                                        0.11   
-lemmatized_model_skipgram_w2_d100.model                                     1.0   
-lemmatized_model_cbow_w4_d100.model                                        0.25   
-lemmatized_model_skipgram_w4_d100.model                                    0.25   
-lemmatized_model_cbow_w2_d300.model                                        0.11   
-lemmatized_model_skipgram_w2_d300.model                                    0.25   
-lemmatized_model_cbow_w4_d300.model                                        0.25   
-lemmatized_model_skipgram_w4_d300.model                                    0.25   
-stemmed_model_cbow_w2_d100.model                                           0.25   
-stemmed_model_skipgram_w2_d100.model                                       0.43   
-stemmed_model_cbow_w4_d100.model                                           0.11   
-stemmed_model_skipgram_w4_d100.model                                       0.25   
-stemmed_model_cbow_w2_d300.model                                           0.11   
-stemmed_model_skipgram_w2_d300.model                                       0.25   
-stemmed_model_cbow_w4_d300.model                                           0.25   
-stemmed_model_skipgram_w4_d300.model                                       0.25   
-
-                                        lemmatized_model_cbow_w4_d100.model  \
-lemmatized_model_cbow_w2_d100.model                                    0.43   
-lemmatized_model_skipgram_w2_d100.model                                0.25   
-lemmatized_model_cbow_w4_d100.model                                     1.0   
-lemmatized_model_skipgram_w4_d100.model                                0.11   
-lemmatized_model_cbow_w2_d300.model                                    0.25   
-lemmatized_model_skipgram_w2_d300.model                                0.43   
-lemmatized_model_cbow_w4_d300.model                                    0.43   
-lemmatized_model_skipgram_w4_d300.model                                0.11   
-stemmed_model_cbow_w2_d100.model                                       0.25   
-stemmed_model_skipgram_w2_d100.model                                   0.43   
-stemmed_model_cbow_w4_d100.model                                       0.11   
-stemmed_model_skipgram_w4_d100.model                                   0.11   
-stemmed_model_cbow_w2_d300.model                                       0.11   
-stemmed_model_skipgram_w2_d300.model                                   0.11   
-stemmed_model_cbow_w4_d300.model                                       0.67   
-stemmed_model_skipgram_w4_d300.model                                   0.11   
-
-                                        lemmatized_model_skipgram_w4_d100.model  \
-lemmatized_model_cbow_w2_d100.model                                        0.11   
-lemmatized_model_skipgram_w2_d100.model                                    0.25   
-lemmatized_model_cbow_w4_d100.model                                        0.11   
-lemmatized_model_skipgram_w4_d100.model                                     1.0   
-lemmatized_model_cbow_w2_d300.model                                        0.11   
-lemmatized_model_skipgram_w2_d300.model                                    0.11   
-lemmatized_model_cbow_w4_d300.model                                        0.11   
-lemmatized_model_skipgram_w4_d300.model                                     1.0   
-stemmed_model_cbow_w2_d100.model                                           0.11   
-stemmed_model_skipgram_w2_d100.model                                       0.25   
-stemmed_model_cbow_w4_d100.model                                           0.11   
-stemmed_model_skipgram_w4_d100.model                                       0.67   
-stemmed_model_cbow_w2_d300.model                                           0.11   
-stemmed_model_skipgram_w2_d300.model                                       0.43   
-stemmed_model_cbow_w4_d300.model                                           0.11   
-stemmed_model_skipgram_w4_d300.model                                        1.0   
-
-                                        lemmatized_model_cbow_w2_d300.model  \
-lemmatized_model_cbow_w2_d100.model                                    0.25   
-lemmatized_model_skipgram_w2_d100.model                                0.11   
-lemmatized_model_cbow_w4_d100.model                                    0.25   
-lemmatized_model_skipgram_w4_d100.model                                0.11   
-lemmatized_model_cbow_w2_d300.model                                     1.0   
-lemmatized_model_skipgram_w2_d300.model                                0.43   
-lemmatized_model_cbow_w4_d300.model                                    0.25   
-lemmatized_model_skipgram_w4_d300.model                                0.11   
-stemmed_model_cbow_w2_d100.model                                       0.43   
-stemmed_model_skipgram_w2_d100.model                                   0.25   
-stemmed_model_cbow_w4_d100.model                                       0.43   
-stemmed_model_skipgram_w4_d100.model                                   0.11   
-stemmed_model_cbow_w2_d300.model                                       0.25   
-stemmed_model_skipgram_w2_d300.model                                   0.11   
-stemmed_model_cbow_w4_d300.model                                       0.25   
-stemmed_model_skipgram_w4_d300.model                                   0.11   
-
-                                        lemmatized_model_skipgram_w2_d300.model  \
-lemmatized_model_cbow_w2_d100.model                                        0.25   
-lemmatized_model_skipgram_w2_d100.model                                    0.25   
-lemmatized_model_cbow_w4_d100.model                                        0.43   
-lemmatized_model_skipgram_w4_d100.model                                    0.11   
-lemmatized_model_cbow_w2_d300.model                                        0.43   
-lemmatized_model_skipgram_w2_d300.model                                     1.0   
-lemmatized_model_cbow_w4_d300.model                                        0.67   
-lemmatized_model_skipgram_w4_d300.model                                    0.11   
-stemmed_model_cbow_w2_d100.model                                           0.67   
-stemmed_model_skipgram_w2_d100.model                                       0.67   
-stemmed_model_cbow_w4_d100.model                                           0.25   
-stemmed_model_skipgram_w4_d100.model                                       0.11   
-stemmed_model_cbow_w2_d300.model                                           0.11   
-stemmed_model_skipgram_w2_d300.model                                       0.11   
-stemmed_model_cbow_w4_d300.model                                           0.43   
-stemmed_model_skipgram_w4_d300.model                                       0.11   
-
-                                        lemmatized_model_cbow_w4_d300.model  \
-lemmatized_model_cbow_w2_d100.model                                    0.25   
-lemmatized_model_skipgram_w2_d100.model                                0.25   
-lemmatized_model_cbow_w4_d100.model                                    0.43   
-lemmatized_model_skipgram_w4_d100.model                                0.11   
-lemmatized_model_cbow_w2_d300.model                                    0.25   
-lemmatized_model_skipgram_w2_d300.model                                0.67   
-lemmatized_model_cbow_w4_d300.model                                     1.0   
-lemmatized_model_skipgram_w4_d300.model                                0.11   
-stemmed_model_cbow_w2_d100.model                                       0.43   
-stemmed_model_skipgram_w2_d100.model                                   0.43   
-stemmed_model_cbow_w4_d100.model                                       0.25   
-stemmed_model_skipgram_w4_d100.model                                   0.11   
-stemmed_model_cbow_w2_d300.model                                       0.11   
-stemmed_model_skipgram_w2_d300.model                                   0.11   
-stemmed_model_cbow_w4_d300.model                                       0.43   
-stemmed_model_skipgram_w4_d300.model                                   0.11   
-
-                                        lemmatized_model_skipgram_w4_d300.model  \
-lemmatized_model_cbow_w2_d100.model                                        0.11   
-lemmatized_model_skipgram_w2_d100.model                                    0.25   
-lemmatized_model_cbow_w4_d100.model                                        0.11   
-lemmatized_model_skipgram_w4_d100.model                                     1.0   
-lemmatized_model_cbow_w2_d300.model                                        0.11   
-lemmatized_model_skipgram_w2_d300.model                                    0.11   
-lemmatized_model_cbow_w4_d300.model                                        0.11   
-lemmatized_model_skipgram_w4_d300.model                                     1.0   
-stemmed_model_cbow_w2_d100.model                                           0.11   
-stemmed_model_skipgram_w2_d100.model                                       0.25   
-stemmed_model_cbow_w4_d100.model                                           0.11   
-stemmed_model_skipgram_w4_d100.model                                       0.67   
-stemmed_model_cbow_w2_d300.model                                           0.11   
-stemmed_model_skipgram_w2_d300.model                                       0.43   
-stemmed_model_cbow_w4_d300.model                                           0.11   
-stemmed_model_skipgram_w4_d300.model                                        1.0   
-
-                                        stemmed_model_cbow_w2_d100.model  \
-lemmatized_model_cbow_w2_d100.model                                 0.11   
-lemmatized_model_skipgram_w2_d100.model                             0.25   
-lemmatized_model_cbow_w4_d100.model                                 0.25   
-lemmatized_model_skipgram_w4_d100.model                             0.11   
-lemmatized_model_cbow_w2_d300.model                                 0.43   
-lemmatized_model_skipgram_w2_d300.model                             0.67   
-lemmatized_model_cbow_w4_d300.model                                 0.43   
-lemmatized_model_skipgram_w4_d300.model                             0.11   
-stemmed_model_cbow_w2_d100.model                                     1.0   
-stemmed_model_skipgram_w2_d100.model                                0.43   
-stemmed_model_cbow_w4_d100.model                                    0.43   
-stemmed_model_skipgram_w4_d100.model                                0.11   
-stemmed_model_cbow_w2_d300.model                                    0.11   
-stemmed_model_skipgram_w2_d300.model                                0.11   
-stemmed_model_cbow_w4_d300.model                                    0.25   
-stemmed_model_skipgram_w4_d300.model                                0.11   
-
-                                        stemmed_model_skipgram_w2_d100.model  \
-lemmatized_model_cbow_w2_d100.model                                     0.25   
-lemmatized_model_skipgram_w2_d100.model                                 0.43   
+                                         lemmatized_model_cbow_w2_d100.model  \
+lemmatized_model_cbow_w2_d100.model                                     1.00   
+lemmatized_model_skipgram_w2_d100.model                                 0.25   
 lemmatized_model_cbow_w4_d100.model                                     0.43   
 lemmatized_model_skipgram_w4_d100.model                                 0.25   
-lemmatized_model_cbow_w2_d300.model                                     0.25   
-lemmatized_model_skipgram_w2_d300.model                                 0.67   
-lemmatized_model_cbow_w4_d300.model                                     0.43   
-lemmatized_model_skipgram_w4_d300.model                                 0.25   
-stemmed_model_cbow_w2_d100.model                                        0.43   
-stemmed_model_skipgram_w2_d100.model                                     1.0   
-stemmed_model_cbow_w4_d100.model                                        0.11   
-stemmed_model_skipgram_w4_d100.model                                    0.25   
-stemmed_model_cbow_w2_d300.model                                        0.11   
-stemmed_model_skipgram_w2_d300.model                                    0.25   
-stemmed_model_cbow_w4_d300.model                                        0.43   
-stemmed_model_skipgram_w4_d300.model                                    0.25   
+stemmed_model_cbow_w2_d100.model                                        0.00   
+stemmed_model_skipgram_w2_d100.model                                    0.11   
+stemmed_model_cbow_w4_d100.model                                        0.00   
+stemmed_model_skipgram_w4_d100.model                                    0.11   
 
-                                        stemmed_model_cbow_w4_d100.model  \
-lemmatized_model_cbow_w2_d100.model                                 0.11   
-lemmatized_model_skipgram_w2_d100.model                             0.11   
-lemmatized_model_cbow_w4_d100.model                                 0.11   
-lemmatized_model_skipgram_w4_d100.model                             0.11   
-lemmatized_model_cbow_w2_d300.model                                 0.43   
-lemmatized_model_skipgram_w2_d300.model                             0.25   
-lemmatized_model_cbow_w4_d300.model                                 0.25   
-lemmatized_model_skipgram_w4_d300.model                             0.11   
-stemmed_model_cbow_w2_d100.model                                    0.43   
-stemmed_model_skipgram_w2_d100.model                                0.11   
-stemmed_model_cbow_w4_d100.model                                     1.0   
-stemmed_model_skipgram_w4_d100.model                                0.25   
-stemmed_model_cbow_w2_d300.model                                    0.25   
-stemmed_model_skipgram_w2_d300.model                                0.11   
-stemmed_model_cbow_w4_d300.model                                    0.11   
-stemmed_model_skipgram_w4_d300.model                                0.11   
+                                         lemmatized_model_skipgram_w2_d100.model  \
+lemmatized_model_cbow_w2_d100.model                                         0.25   
+lemmatized_model_skipgram_w2_d100.model                                     1.00   
+lemmatized_model_cbow_w4_d100.model                                         0.11   
+lemmatized_model_skipgram_w4_d100.model                                     0.67   
+stemmed_model_cbow_w2_d100.model                                            0.00   
+stemmed_model_skipgram_w2_d100.model                                        0.11   
+stemmed_model_cbow_w4_d100.model                                            0.00   
+stemmed_model_skipgram_w4_d100.model                                        0.11   
 
-                                        stemmed_model_skipgram_w4_d100.model  \
-lemmatized_model_cbow_w2_d100.model                                     0.11   
-lemmatized_model_skipgram_w2_d100.model                                 0.25   
-lemmatized_model_cbow_w4_d100.model                                     0.11   
-lemmatized_model_skipgram_w4_d100.model                                 0.67   
-lemmatized_model_cbow_w2_d300.model                                     0.11   
-lemmatized_model_skipgram_w2_d300.model                                 0.11   
-lemmatized_model_cbow_w4_d300.model                                     0.11   
-lemmatized_model_skipgram_w4_d300.model                                 0.67   
-stemmed_model_cbow_w2_d100.model                                        0.11   
-stemmed_model_skipgram_w2_d100.model                                    0.25   
-stemmed_model_cbow_w4_d100.model                                        0.25   
-stemmed_model_skipgram_w4_d100.model                                     1.0   
-stemmed_model_cbow_w2_d300.model                                        0.11   
-stemmed_model_skipgram_w2_d300.model                                    0.43   
-stemmed_model_cbow_w4_d300.model                                        0.11   
-stemmed_model_skipgram_w4_d300.model                                    0.67   
+                                         lemmatized_model_cbow_w4_d100.model  \
+lemmatized_model_cbow_w2_d100.model                                     0.43   
+lemmatized_model_skipgram_w2_d100.model                                 0.11   
+lemmatized_model_cbow_w4_d100.model                                     1.00   
+lemmatized_model_skipgram_w4_d100.model                                 0.11   
+stemmed_model_cbow_w2_d100.model                                        0.00   
+stemmed_model_skipgram_w2_d100.model                                    0.00   
+stemmed_model_cbow_w4_d100.model                                        0.00   
+stemmed_model_skipgram_w4_d100.model                                    0.00   
 
-                                        stemmed_model_cbow_w2_d300.model  \
-lemmatized_model_cbow_w2_d100.model                                 0.11   
-lemmatized_model_skipgram_w2_d100.model                             0.11   
-lemmatized_model_cbow_w4_d100.model                                 0.11   
-lemmatized_model_skipgram_w4_d100.model                             0.11   
-lemmatized_model_cbow_w2_d300.model                                 0.25   
-lemmatized_model_skipgram_w2_d300.model                             0.11   
-lemmatized_model_cbow_w4_d300.model                                 0.11   
-lemmatized_model_skipgram_w4_d300.model                             0.11   
-stemmed_model_cbow_w2_d100.model                                    0.11   
-stemmed_model_skipgram_w2_d100.model                                0.11   
-stemmed_model_cbow_w4_d100.model                                    0.25   
-stemmed_model_skipgram_w4_d100.model                                0.11   
-stemmed_model_cbow_w2_d300.model                                     1.0   
-stemmed_model_skipgram_w2_d300.model                                0.11   
-stemmed_model_cbow_w4_d300.model                                    0.11   
-stemmed_model_skipgram_w4_d300.model                                0.11   
+                                         lemmatized_model_skipgram_w4_d100.model  \
+lemmatized_model_cbow_w2_d100.model                                         0.25   
+lemmatized_model_skipgram_w2_d100.model                                     0.67   
+lemmatized_model_cbow_w4_d100.model                                         0.11   
+lemmatized_model_skipgram_w4_d100.model                                     1.00   
+stemmed_model_cbow_w2_d100.model                                            0.00   
+stemmed_model_skipgram_w2_d100.model                                        0.11   
+stemmed_model_cbow_w4_d100.model                                            0.00   
+stemmed_model_skipgram_w4_d100.model                                        0.11   
 
-                                        stemmed_model_skipgram_w2_d300.model  \
-lemmatized_model_cbow_w2_d100.model                                     0.11   
-lemmatized_model_skipgram_w2_d100.model                                 0.25   
-lemmatized_model_cbow_w4_d100.model                                     0.11   
-lemmatized_model_skipgram_w4_d100.model                                 0.43   
-lemmatized_model_cbow_w2_d300.model                                     0.11   
-lemmatized_model_skipgram_w2_d300.model                                 0.11   
-lemmatized_model_cbow_w4_d300.model                                     0.11   
-lemmatized_model_skipgram_w4_d300.model                                 0.43   
-stemmed_model_cbow_w2_d100.model                                        0.11   
-stemmed_model_skipgram_w2_d100.model                                    0.25   
-stemmed_model_cbow_w4_d100.model                                        0.11   
-stemmed_model_skipgram_w4_d100.model                                    0.43   
-stemmed_model_cbow_w2_d300.model                                        0.11   
-stemmed_model_skipgram_w2_d300.model                                     1.0   
-stemmed_model_cbow_w4_d300.model                                        0.11   
-stemmed_model_skipgram_w4_d300.model                                    0.43   
+                                         stemmed_model_cbow_w2_d100.model  \
+lemmatized_model_cbow_w2_d100.model                                  0.00   
+lemmatized_model_skipgram_w2_d100.model                              0.00   
+lemmatized_model_cbow_w4_d100.model                                  0.00   
+lemmatized_model_skipgram_w4_d100.model                              0.00   
+stemmed_model_cbow_w2_d100.model                                     1.00   
+stemmed_model_skipgram_w2_d100.model                                 0.00   
+stemmed_model_cbow_w4_d100.model                                     0.67   
+stemmed_model_skipgram_w4_d100.model                                 0.00   
 
-                                        stemmed_model_cbow_w4_d300.model  \
-lemmatized_model_cbow_w2_d100.model                                 0.43   
-lemmatized_model_skipgram_w2_d100.model                             0.25   
-lemmatized_model_cbow_w4_d100.model                                 0.67   
-lemmatized_model_skipgram_w4_d100.model                             0.11   
-lemmatized_model_cbow_w2_d300.model                                 0.25   
-lemmatized_model_skipgram_w2_d300.model                             0.43   
-lemmatized_model_cbow_w4_d300.model                                 0.43   
-lemmatized_model_skipgram_w4_d300.model                             0.11   
-stemmed_model_cbow_w2_d100.model                                    0.25   
-stemmed_model_skipgram_w2_d100.model                                0.43   
-stemmed_model_cbow_w4_d100.model                                    0.11   
-stemmed_model_skipgram_w4_d100.model                                0.11   
-stemmed_model_cbow_w2_d300.model                                    0.11   
-stemmed_model_skipgram_w2_d300.model                                0.11   
-stemmed_model_cbow_w4_d300.model                                     1.0   
-stemmed_model_skipgram_w4_d300.model                                0.11   
+                                         stemmed_model_skipgram_w2_d100.model  \
+lemmatized_model_cbow_w2_d100.model                                      0.11   
+lemmatized_model_skipgram_w2_d100.model                                  0.11   
+lemmatized_model_cbow_w4_d100.model                                      0.00   
+lemmatized_model_skipgram_w4_d100.model                                  0.11   
+stemmed_model_cbow_w2_d100.model                                         0.00   
+stemmed_model_skipgram_w2_d100.model                                     1.00   
+stemmed_model_cbow_w4_d100.model                                         0.11   
+stemmed_model_skipgram_w4_d100.model                                     1.00   
 
-                                        stemmed_model_skipgram_w4_d300.model  
-lemmatized_model_cbow_w2_d100.model                                     0.11  
-lemmatized_model_skipgram_w2_d100.model                                 0.25  
-lemmatized_model_cbow_w4_d100.model                                     0.11  
-lemmatized_model_skipgram_w4_d100.model                                  1.0  
-lemmatized_model_cbow_w2_d300.model                                     0.11  
-lemmatized_model_skipgram_w2_d300.model                                 0.11  
-lemmatized_model_cbow_w4_d300.model                                     0.11  
-lemmatized_model_skipgram_w4_d300.model                                  1.0  
-stemmed_model_cbow_w2_d100.model                                        0.11  
-stemmed_model_skipgram_w2_d100.model                                    0.25  
-stemmed_model_cbow_w4_d100.model                                        0.11  
-stemmed_model_skipgram_w4_d100.model                                    0.67  
-stemmed_model_cbow_w2_d300.model                                        0.11  
-stemmed_model_skipgram_w2_d300.model                                    0.43  
-stemmed_model_cbow_w4_d300.model                                        0.11  
-stemmed_model_skipgram_w4_d300.model                                     1.0  
+                                         stemmed_model_cbow_w4_d100.model  \
+lemmatized_model_cbow_w2_d100.model                                  0.00   
+lemmatized_model_skipgram_w2_d100.model                              0.00   
+lemmatized_model_cbow_w4_d100.model                                  0.00   
+lemmatized_model_skipgram_w4_d100.model                              0.00   
+stemmed_model_cbow_w2_d100.model                                     0.67   
+stemmed_model_skipgram_w2_d100.model                                 0.11   
+stemmed_model_cbow_w4_d100.model                                     1.00   
+stemmed_model_skipgram_w4_d100.model                                 0.11   
 
+                                         stemmed_model_skipgram_w4_d100.model  
+lemmatized_model_cbow_w2_d100.model                                      0.11  
+lemmatized_model_skipgram_w2_d100.model                                  0.11  
+lemmatized_model_cbow_w4_d100.model                                      0.00  
+lemmatized_model_skipgram_w4_d100.model                                  0.11  
+stemmed_model_cbow_w2_d100.model                                         0.00  
+stemmed_model_skipgram_w2_d100.model                                     1.00  
+stemmed_model_cbow_w4_d100.model                                         0.11  
+stemmed_model_skipgram_w4_d100.model                                     1.00  
+
+Jaccard matrisi CSV dosyasına kaydedildi.
 ````
-[jaccard_similarity_matrix.csv](https://github.com/user-attachments/files/20494011/jaccard_similarity_matrix.csv)
-
 
 
 
