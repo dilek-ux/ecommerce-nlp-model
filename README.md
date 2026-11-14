@@ -1,4 +1,4 @@
-    # ecommerce-nlp-model
+    # **ecommerce-nlp-model**
 TF-IDF ve Word2Vec ile ürün başlıkları üzerinden benzerlik analizi yaptık
 
 **E-Ticaret Projesi: Ürün Açıklama Eşleştirme**
@@ -1610,9 +1610,9 @@ stemmed_model_skipgram_w4_d100.model                                     1.00
 Jaccard matrisi CSV dosyasına kaydedildi.
 ````
 
+**Sonuçların Değerlendirilmesi**
 
 ````
-**Sonuçların Değerlendirilmesi**
 
 1. Veri setinin incelenmesi ve metin ön işleme sonuçları
 
