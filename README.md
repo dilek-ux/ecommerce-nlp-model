@@ -73,7 +73,7 @@ Böylece her kelimenin açıklamadaki önemi dikkate alınarak daha anlamlı ve 
 
 **Dosya İçeriği:**
 
-- `ecommerce_nlp_model(6).ipynb`: Proje adımlarını içeren Jupyter Notebook dosyası
+- `ecommerce_nlp_model_pricerunner_aggregate`: Proje adımlarını içeren Jupyter Notebook dosyası
 - `README.md`: Bu açıklama dosyası
   
 # Nasıl Çalıştırılır?
